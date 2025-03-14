@@ -100,4 +100,13 @@ class Sesamy2_Public {
 
 	}
 
+	/**
+	 * Append the Sesamy paywall to post content
+	 *
+	 * @since    1.0.0
+	 */
+	public function add_paywall( $content ) {
+		return $content . '<sesamy-paywall settings-url="https://api.sesamy.dev/paywall/paywalls/acme/OxHlsEHTUGs1tpF6EoRy8" />';
+	}
+
 }
