@@ -1,9 +1,13 @@
 {
   "scripts": {
-    "wp-env": "wp-env"
+    "wp-env": "wp-env",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "@wordpress/env": "^10.20.0"
+    "10up-toolkit": "^6.4.0",
+    "@wordpress/env": "^10.20.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.0"
   },
   "packageManager": "yarn@1.22.22"
 }
