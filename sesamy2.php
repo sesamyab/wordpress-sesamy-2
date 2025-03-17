@@ -1,5 +1,4 @@
 <?php
-
 /**
  * The plugin bootstrap file
  *
@@ -56,6 +55,5 @@ function run_sesamy2() {
 
 	$plugin = new Sesamy2();
 	$plugin->run();
-
 }
 run_sesamy2();

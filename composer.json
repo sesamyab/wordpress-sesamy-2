@@ -14,13 +14,6 @@
       "phpstan --memory-limit=1G"
     ]
   },
-  "extra": {
-    "installer-paths": {
-      "plugins/{$name}/": [
-        "type:wordpress-plugin"
-      ]
-    }
-  },
   "config": {
     "allow-plugins": {
       "composer/installers": true,
