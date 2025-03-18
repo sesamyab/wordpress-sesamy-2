@@ -11,6 +11,9 @@ use TenupFramework\Assets\GetAssetInfo;
 use TenupFramework\Module;
 use TenupFramework\ModuleInterface;
 
+use function SesamyPlugin\Helpers\is_config_valid;
+use function SesamyPlugin\Helpers\get_sesamy_setting;
+
 /**
  * Assets module.
  *
@@ -82,9 +85,13 @@ class Assets implements ModuleInterface {
 	 * @return void
 	 */
 	public function sesamy_scripts() {
+		if ( ! is_config_valid() ) {
+			return;
+		}
+		$client_id = get_sesamy_setting( 'client_id' );
 		wp_enqueue_script_module(
 			'sesamy_bundle',
-			'https://scripts.sesamy.com/s/acme/bundle',
+			'https://scripts.sesamy.dev/s/' . $client_id . '/bundle',
 			[],
 			SESAMY_PLUGIN_VERSION
 		);

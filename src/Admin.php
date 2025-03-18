@@ -10,6 +10,8 @@ namespace SesamyPlugin;
 use TenupFramework\Module;
 use TenupFramework\ModuleInterface;
 
+use function SesamyPlugin\Helpers\get_sesamy_setting;
+
 
 /**
  * Admin module.
@@ -35,18 +37,8 @@ class Admin implements ModuleInterface {
 	 * @return void
 	 */
 	public function register() {
-		add_action( 'init', [ $this, 'register_sesamy_settings' ] );
 		add_action( 'admin_menu', [ $this, 'add_sesamy_settings_page' ] );
 		add_action( 'admin_init', [ $this, 'add_sesamy_setting_fields' ] );
-	}
-
-	/**
-	 * Register settings.
-	 *
-	 * @return void
-	 */
-	public function register_sesamy_settings() {
-		register_setting( 'sesamy', 'sesamy_settings' );
 	}
 
 	/**
@@ -80,9 +72,6 @@ class Admin implements ModuleInterface {
 				settings_fields( 'sesamy' );
 				do_settings_sections( 'sesamy' );
 				submit_button( 'Save Settings' );
-				echo wp_json_encode( get_option( 'sesamy_settings' ) );
-				// echo '<br><br>';
-				// echo wp_json_encode( get_post_types( [ 'public' => true ], 'objects' ) );
 				?>
 			</form>
 		</div>
@@ -228,15 +217,8 @@ class Admin implements ModuleInterface {
 	 * @return void
 	 */
 	public function settings_render_textfield( $args ) {
-		/**
-		 * Options array from the Sesamy settings.
-		 *
-		 * @var array<string> $options
-		 */
-		$options = get_option( 'sesamy_settings' );
-
 		$field_name    = $args['name'];
-		$current_value = isset( $options[ $field_name ] ) ? $options[ $field_name ] : '';
+		$current_value = get_sesamy_setting( $field_name );
 
 		echo '<input type="text" id="' . esc_attr( $field_name ) . '" name="sesamy_settings[' . esc_attr( $field_name ) . ']" value="' . esc_attr( $current_value ) . '" class="regular-text" />';
 	}
@@ -249,22 +231,13 @@ class Admin implements ModuleInterface {
 	 * @return void
 	 */
 	public function settings_render_selectfield( $args ) {
-		/**
-		 * Options array from the Sesamy settings.
-		 *
-		 * @var array<string> $options
-		 */
-		$options = get_option( 'sesamy_settings' );
-
 		$field_name    = $args['name'];
-		$current_value = isset( $options[ $field_name ] ) ? $options[ $field_name ] : '';
+		$current_value = get_sesamy_setting( $field_name );
 
 		echo '<select id="' . esc_attr( $field_name ) . '" name="sesamy_settings[' . esc_attr( $field_name ) . ']" class="regular-text">';
-		if ( isset( $args['options'] ) && is_array( $args['options'] ) ) {
-			foreach ( $args['options'] as $value => $label ) {
-				$selected = selected( $current_value, $value, false );
-				echo '<option value="' . esc_attr( $value ) . '" ' . esc_attr( $selected ) . '>' . esc_html( $label ) . '</option>';
-			}
+		foreach ( $args['options'] as $value => $label ) {
+			$selected = selected( $current_value, $value, false );
+			echo '<option value="' . esc_attr( $value ) . '" ' . esc_attr( $selected ) . '>' . esc_html( $label ) . '</option>';
 		}
 		echo '</select>';
 	}
@@ -277,15 +250,8 @@ class Admin implements ModuleInterface {
 	 * @return void
 	 */
 	public function settings_render_checkbox_list( $args ) {
-		/**
-		 * Options array from the Sesamy settings.
-		 *
-		 * @var array<string> $options
-		 */
-		$options = get_option( 'sesamy_settings' );
-
 		$field_name     = $args['name'];
-		$current_values = isset( $options[ $field_name ] ) ? $options[ $field_name ] : [];
+		$current_values = get_sesamy_setting( $field_name ) ?? [];
 
 		echo '<fieldset>';
 		foreach ( $args['options'] as $value => $label ) {
@@ -303,15 +269,8 @@ class Admin implements ModuleInterface {
 	 * @return void
 	 */
 	public function settings_render_posttype_list( $args ) {
-		/**
-		 * Options array from the Sesamy settings.
-		 *
-		 * @var array<string> $options
-		 */
-		$options = get_option( 'sesamy_settings' );
-
 		$field_name     = $args['name'];
-		$current_values = isset( $options[ $field_name ] ) ? $options[ $field_name ] : [];
+		$current_values = get_sesamy_setting( $field_name ) ?? [];
 		$post_types     = get_post_types( [ 'public' => true ] );
 
 		// Exclude the 'attachment' post type
@@ -321,9 +280,13 @@ class Admin implements ModuleInterface {
 
 		echo '<fieldset>';
 		foreach ( $post_types as $post_type ) {
-			$obj           = get_post_type_object( $post_type );
-			$singular_name = $obj->labels->singular_name;
-			$checked       = checked( in_array( $post_type, $current_values, true ), true, false );
+			$obj = get_post_type_object( $post_type );
+			if ( isset( $obj->labels->singular_name ) ) {
+				$singular_name = $obj->labels->singular_name;
+			} else {
+				$singular_name = $post_type;
+			}
+			$checked = checked( in_array( $post_type, $current_values, true ), true, false );
 			echo '<label><input type="checkbox" name="sesamy_settings[' . esc_attr( $args['name'] ) . '][]" value="' . esc_attr( $post_type ) . '" ' . esc_attr( $checked ) . '>' . esc_html( $singular_name ) . '</label><br>';
 		}
 		echo '</fieldset>';
