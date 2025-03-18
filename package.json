@@ -1,13 +1,39 @@
 {
+  "name": "sesamy-wp-plugin",
+  "version": "1.0.0",
+  "description": "Sesamy WordPress plugin",
   "scripts": {
-    "wp-env": "wp-env",
+    "wp-env": "wp-env start",
+    "watch": "10up-toolkit watch --port=5010 --hot",
+    "build": "10up-toolkit build",
+    "format-js": "10up-toolkit format-js",
+    "lint-js": "10up-toolkit lint-js",
+    "lint-style": "10up-toolkit lint-style",
+    "test": "10up-toolkit test-unit-jest --passWithNoTests",
+    "clean-dist": "rm -rf ./dist",
     "prepare": "husky"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "devDependencies": {
-    "10up-toolkit": "^6.4.0",
-    "@wordpress/env": "^10.20.0",
+    "10up-toolkit": "^6.4.1",
     "husky": "^9.1.7",
     "lint-staged": "^15.5.0"
   },
-  "packageManager": "yarn@1.22.22"
+  "dependencies": {
+    "@wordpress/api-fetch": "^7.20.0",
+    "@wordpress/components": "^29.6.0",
+    "@wordpress/data": "^10.20.0",
+    "@wordpress/dom-ready": "^4.20.0",
+    "@wordpress/element": "^6.20.0",
+    "@wordpress/notices": "^5.20.0",
+    "prop-types": "^15.7.2"
+  },
+  "10up-toolkit": {
+    "devURL": "http://127.0.0.1:8888",
+    "entry": {
+      "admin": "./assets/js/admin.js"
+    }
+  }
 }

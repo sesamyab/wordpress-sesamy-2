@@ -1,0 +1,27 @@
+includes:
+	- vendor/szepeviktor/phpstan-wordpress/extension.neon
+	- vendor/phpstan/phpstan-deprecation-rules/rules.neon
+
+parameters:
+	reportUnmatchedIgnoredErrors: false
+	level: 9
+	paths:
+		- src
+	bootstrapFiles:
+		- phpstan/constants.php
+	stubFiles:
+		- phpstan/stubs/wp-query.stub
+	scanFiles:
+		- vendor/php-stubs/wordpress-stubs/wordpress-stubs.php
+		- vendor/php-stubs/wp-cli-stubs/wp-cli-stubs.php
+		- vendor/php-stubs/wp-cli-stubs/wp-cli-commands-stubs.php
+		- vendor/php-stubs/wp-cli-stubs/wp-cli-i18n-stubs.php
+	ignoreErrors:
+		# Uses func_get_args()
+		- '#^Function apply_filters invoked with [34567] parameters, 2 required\.$#'
+		- '#^Function remove_filter invoked with [34567] parameters, 2-3 required\.$#'
+		# Remove issues that come from using array as a type rather than string[] or array<string> etc.
+		- '#no value type specified in iterable type array#'
+		# These are annoying issues where PHPStan isn't picking up the type correctly. We can fix these once we get real PHP generics.
+		- '#^Parameter \#3 \$deps of function wp_enqueue_script expects array<string>, array<string>\|string given\.#'
+		- '#^Parameter \#3 \$deps of function wp_register_style expects array<string>, array<string>\|string given\.#'
