@@ -43,6 +43,8 @@ class Assets implements ModuleInterface {
 
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_styles' ] );
+
+		add_action( 'wp_enqueue_scripts', [ $this, 'sesamy_scripts' ] );
 	}
 
 	/**
@@ -70,8 +72,21 @@ class Assets implements ModuleInterface {
 			'sesamy_plugin_admin',
 			SESAMY_PLUGIN_URL . 'dist/css/admin.css',
 			[],
-			$this->get_asset_info( 'admin', 'version' ),
+			$this->get_asset_info( 'admin', 'version' )
 		);
-		wp_enqueue_style( 'wp-components' );
+	}
+
+	/**
+	 * Enqueue Sesamy scripts.
+	 *
+	 * @return void
+	 */
+	public function sesamy_scripts() {
+		wp_enqueue_script_module(
+			'sesamy_bundle',
+			'https://scripts.sesamy.com/s/acme/bundle',
+			[],
+			SESAMY_PLUGIN_VERSION
+		);
 	}
 }
