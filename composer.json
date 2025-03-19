@@ -21,7 +21,10 @@
   "autoload": {
     "psr-4": {
       "SesamyPlugin\\": "src/"
-    }
+    },
+    "files": [
+      "src/Support/helpers.php"
+    ]
   },
   "extra": {
     "installer-paths": {
