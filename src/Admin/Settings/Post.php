@@ -61,58 +61,58 @@ class Post implements ModuleInterface {
 				register_post_meta(
 					$post_type,
 					'_sesamy_locked',
-					array(
+					[
 						'show_in_rest'  => true,
 						'single'        => true,
 						'type'          => 'boolean',
 						'default'       => false,
 						'auth_callback' => '__return_true',
-					)
+					]
 				);
 
 				register_post_meta(
 					$post_type,
 					'_sesamy_access_level',
-					array(
+					[
 						'show_in_rest'  => true,
 						'single'        => true,
 						'type'          => 'string',
 						'auth_callback' => '__return_true',
 						'default'       => 'entitlement',
-					)
+					]
 				);
 
 				register_post_meta(
 					$post_type,
 					'_sesamy_enable_single_purchase',
-					array(
+					[
 						'show_in_rest'  => true,
 						'single'        => true,
 						'type'          => 'boolean',
 						'auth_callback' => '__return_true',
-					)
+					]
 				);
 
 				register_post_meta(
 					$post_type,
 					'_sesamy_price',
-					array(
+					[
 						'show_in_rest'  => true,
 						'single'        => true,
 						'type'          => 'number',
 						'auth_callback' => '__return_true',
-					)
+					]
 				);
 
 				register_post_meta(
 					$post_type,
 					'_sesamy_custom_paywall_url',
-					array(
+					[
 						'show_in_rest'  => true,
 						'single'        => true,
 						'type'          => 'string',
 						'auth_callback' => '__return_true',
-					)
+					]
 				);
 			}
 		}

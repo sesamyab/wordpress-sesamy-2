@@ -73,13 +73,18 @@ class ContentContainer implements ModuleInterface {
 	 */
 	public function process_content( $post, $content ) {
 		$is_locked = get_post_meta( $post->ID, '_sesamy_locked', true );
+		$lock_mode = get_sesamy_setting( 'lock_mode' );
 		$preview   = apply_filters( 'sesamy_paywall_preview', $this->extract_preview( $post ) );
 		$paywall   = apply_filters( 'sesamy_paywall', $this->render_paywall() );
 
 		$html  = '<sesamy-article item-src="' . esc_url( get_permalink( $post->ID ) ) . '" publisher-content-id="' . esc_attr( $post->ID ) . '">';
-		$html .= '<sesamy-content-container>';
+		$html .= '<sesamy-content-container lock-mode="' . esc_attr( $lock_mode ) . '">';
 		$html .= '<div slot="preview">' . $preview . '</div>';
-		$html .= '<div slot="content">' . $content . '</div>';
+		if ( 'embed' === $lock_mode ) {
+			$html .= '<div slot="content">' . $content . '</div>';
+		} elseif ( 'encode' === $lock_mode ) {
+			$html .= '<div slot="content">' . base64_encode( $content ) . '</div>';
+		}
 		$html .= '</sesamy-content-container>';
 		if ( $is_locked ) {
 			$html .= $paywall;

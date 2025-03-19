@@ -52,7 +52,7 @@ class Settings implements ModuleInterface {
 			'manage_options',
 			'sesamy',
 			[ $this, 'admin_page' ],
-			plugins_url( 'dist/images/sesamy.svg', __DIR__ ),
+			SESAMY_PLUGIN_URL . 'dist/images/sesamy.svg',
 			100
 		);
 	}

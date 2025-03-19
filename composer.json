@@ -10,7 +10,8 @@
   },
   "require": {
     "php": ">=7.1",
-    "10up/wp-framework": "~1.1.0"
+    "10up/wp-framework": "~1.1.0",
+    "gree/jose": "^2.2"
   },
   "require-dev": {
     "10up/phpcs-composer": "^3.0",

@@ -71,7 +71,6 @@ class Meta implements ModuleInterface {
 					if ( ! empty( $price ) ) {
 						echo '<meta name="sesamy:price" content="' . esc_attr( $price ) . '">';
 					}
-					var_dump( get_post_meta( $post->ID, '_sesamy_price', true ) );
 				}
 			}
 		}
