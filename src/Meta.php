@@ -58,6 +58,21 @@ class Meta implements ModuleInterface {
 				if ( ! empty( $options['default_pass'] ) ) {
 					echo '<meta name="sesamy:pass" content="' . esc_attr( $options['default_pass'] ) . '">';
 				}
+
+				$is_locked    = (bool) ( get_post_meta( $post->ID, '_sesamy_locked', true ) ?? false );
+				$access_level = $is_locked ? get_post_meta( $post->ID, '_sesamy_access_level', true ) : 'public';
+				echo '<meta name="sesamy:accessLevel" content="' . esc_attr( $access_level ) . '">';
+
+				$single_purchase = (bool) ( get_post_meta( $post->ID, '_sesamy_enable_single_purchase', true ) ?? false );
+				if ( $single_purchase ) {
+					$default_price = $options['default_price'] ?? '';
+					$meta_price    = get_post_meta( $post->ID, '_sesamy_price', true );
+					$price         = ! empty( $meta_price ) ? $meta_price : $default_price;
+					if ( ! empty( $price ) ) {
+						echo '<meta name="sesamy:price" content="' . esc_attr( $price ) . '">';
+					}
+					var_dump( get_post_meta( $post->ID, '_sesamy_price', true ) );
+				}
 			}
 		}
 	}

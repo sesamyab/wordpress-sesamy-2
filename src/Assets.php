@@ -11,6 +11,7 @@ use TenupFramework\Assets\GetAssetInfo;
 use TenupFramework\Module;
 use TenupFramework\ModuleInterface;
 
+use function SesamyPlugin\Helpers\get_enabled_post_types;
 use function SesamyPlugin\Helpers\is_config_valid;
 use function SesamyPlugin\Helpers\get_sesamy_setting;
 
@@ -46,6 +47,7 @@ class Assets implements ModuleInterface {
 
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_styles' ] );
+		add_action( 'enqueue_block_editor_assets', [ $this, 'block_editor_scripts' ] );
 
 		add_action( 'wp_enqueue_scripts', [ $this, 'sesamy_scripts' ] );
 	}
@@ -95,5 +97,24 @@ class Assets implements ModuleInterface {
 			[],
 			SESAMY_PLUGIN_VERSION
 		);
+	}
+
+	/**
+	 * Enqueue scripts for the block editor.
+	 *
+	 * @return void
+	 */
+	public function block_editor_scripts() {
+		global $post;
+		$enabled_post_types = get_enabled_post_types();
+		if ( isset( $post ) && is_config_valid() && in_array( $post->post_type, $enabled_post_types, true ) ) {
+			wp_enqueue_script(
+				'sesamy_plugin_post_settings',
+				SESAMY_PLUGIN_URL . 'dist/js/post-settings.js',
+				$this->get_asset_info( 'post-settings', 'dependencies' ),
+				$this->get_asset_info( 'post-settings', 'version' ),
+				true
+			);
+		}
 	}
 }

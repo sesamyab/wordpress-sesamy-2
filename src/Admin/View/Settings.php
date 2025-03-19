@@ -1,24 +1,24 @@
 <?php
 /**
- * Admin module.
+ * Settings View module.
  *
  * @package Sesamy2
  */
 
-namespace SesamyPlugin;
+namespace SesamyPlugin\Admin\View;
 
 use TenupFramework\Module;
 use TenupFramework\ModuleInterface;
 
 use function SesamyPlugin\Helpers\get_sesamy_setting;
-
+use function SesamyPlugin\Helpers\is_config_valid;
 
 /**
- * Admin module.
+ * Settings View module.
  *
  * @package Sesamy2
  */
-class Admin implements ModuleInterface {
+class Settings implements ModuleInterface {
 
 	use Module;
 
@@ -28,7 +28,7 @@ class Admin implements ModuleInterface {
 	 * @return bool
 	 */
 	public function can_register() {
-		return true;
+		return is_config_valid();
 	}
 
 	/**
@@ -38,7 +38,6 @@ class Admin implements ModuleInterface {
 	 */
 	public function register() {
 		add_action( 'admin_menu', [ $this, 'add_sesamy_settings_page' ] );
-		add_action( 'admin_init', [ $this, 'add_sesamy_setting_fields' ] );
 	}
 
 	/**
@@ -79,130 +78,6 @@ class Admin implements ModuleInterface {
 	}
 
 	/**
-	 * Add settings fields.
-	 *
-	 * @return void
-	 */
-	public function add_sesamy_setting_fields() {
-		add_settings_section(
-			'section_general',
-			'',
-			[ $this, 'section_general_callback' ],
-			'sesamy'
-		);
-
-		add_settings_field(
-			'client_id',
-			__( 'Client ID', 'sesamy' ),
-			[ $this, 'settings_render_textfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'      => 'client_id',
-				'label_for' => 'client_id',
-			]
-		);
-
-		add_settings_field(
-			'client_secret',
-			__( 'Client Secret', 'sesamy' ),
-			[ $this, 'settings_render_textfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'      => 'client_secret',
-				'label_for' => 'client_secret',
-			]
-		);
-
-		add_settings_field(
-			'default_currency',
-			__( 'Default Currency', 'sesamy' ),
-			[ $this, 'settings_render_selectfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'      => 'default_currency',
-				'label_for' => 'default_currency',
-				'options'   => [
-					''    => 'Select',
-					'SEK' => 'SEK',
-					'EUR' => 'EUR',
-					'NOK' => 'NOK',
-				],
-			]
-		);
-
-		add_settings_field(
-			'default_paywall',
-			__( 'Default Paywall', 'sesamy' ),
-			[ $this, 'settings_render_textfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'      => 'default_paywall',
-				'label_for' => 'default_paywall',
-			]
-		);
-
-		add_settings_field(
-			'default_pass',
-			__( 'Default Pass', 'sesamy' ),
-			[ $this, 'settings_render_textfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'      => 'default_pass',
-				'label_for' => 'default_pass',
-			]
-		);
-
-		add_settings_field(
-			'lock_mode',
-			__( 'Lock Mode', 'sesamy' ),
-			[ $this, 'settings_render_selectfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'    => 'lock_mode',
-				'options' => [
-					''           => 'Select',
-					'embed'      => 'Embed',
-					'encode'     => 'Encode',
-					'signed-url' => 'Signed URL',
-				],
-			]
-		);
-
-		add_settings_field(
-			'enabled_content_types',
-			__( 'Content Types', 'sesamy' ),
-			[ $this, 'settings_render_posttype_list' ],
-			'sesamy',
-			'section_general',
-			[
-				'name' => 'enabled_content_types',
-			]
-		);
-
-		add_settings_field(
-			'render_settings',
-			__( 'Render', 'sesamy' ),
-			[ $this, 'settings_render_checkbox_list' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'    => 'render_settings',
-				'options' => [
-					'meta'    => 'Metadata',
-					'paywall' => 'Paywall',
-					'js'      => 'JavaScript',
-				],
-			]
-		);
-	}
-
-	/**
 	 * General Section callback.
 	 *
 	 * @return void
@@ -221,6 +96,20 @@ class Admin implements ModuleInterface {
 		$current_value = get_sesamy_setting( $field_name );
 
 		echo '<input type="text" id="' . esc_attr( $field_name ) . '" name="sesamy_settings[' . esc_attr( $field_name ) . ']" value="' . esc_attr( $current_value ) . '" class="regular-text" />';
+	}
+
+	/**
+	 * Number field render
+	 *
+	 * @param array{name: string} $args Arguments of text fields.
+	 *
+	 * @return void
+	 */
+	public function settings_render_numberfield( $args ) {
+		$field_name    = $args['name'];
+		$current_value = get_sesamy_setting( $field_name );
+
+		echo '<input type="number" id="' . esc_attr( $field_name ) . '" name="sesamy_settings[' . esc_attr( $field_name ) . ']" value="' . esc_attr( $current_value ) . '" class="regular-text" />';
 	}
 
 	/**
