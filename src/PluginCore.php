@@ -7,8 +7,6 @@
 
 namespace SesamyPlugin;
 
-use TenupFramework\ModuleInitialization;
-
 /**
  * PluginCore module.
  *
@@ -33,27 +31,15 @@ class PluginCore {
 	 * @return void
 	 */
 	public function init() {
-		do_action( 'sesamy_plugin_before_init' );
-
-		if ( ! class_exists( '\TenupFramework\ModuleInitialization' ) ) {
-			add_action(
-				'admin_notices',
-				function () {
-					$class = 'notice notice-error';
-
-					printf(
-						'<div class="%1$s"><p>%2$s</p></div>',
-						esc_attr( $class ),
-						wp_kses_post( 'Please ensure the <a href="https://github.com/10up/wp-framework"><code>10up/wp-framework</code></a> composer package is installed.' )
-					);
-				}
-			);
-
-			return;
-		}
-
-		ModuleInitialization::instance()->init_classes( SESAMY_PLUGIN_INC );
 		do_action( 'sesamy_plugin_init' );
+
+		// Register class interfaces
+		\SesamyPlugin\Admin\Settings\Core::register();
+		\SesamyPlugin\Admin\Settings\Post::register();
+		\SesamyPlugin\Admin\View\Settings::register();
+		\SesamyPlugin\ContentContainer::register();
+		\SesamyPlugin\Meta::register();
+		\SesamyPlugin\Assets::register();
 	}
 
 	/**
@@ -76,16 +62,5 @@ class PluginCore {
 	 */
 	public function deactivate() {
 		// Do nothing.
-	}
-
-	/**
-	 * Get an initialized class by its full class name, including namespace.
-	 *
-	 * @param string $class_name The class name including the namespace.
-	 *
-	 * @return false|\TenupFramework\ModuleInterface
-	 */
-	public static function get_module( $class_name ) {
-		return \TenupFramework\ModuleInitialization::get_module( $class_name );
 	}
 }

@@ -9,9 +9,7 @@
     ]
   },
   "require": {
-    "php": ">=7.1",
-    "10up/wp-framework": "~1.1.0",
-    "gree/jose": "^2.2"
+    "php": ">=7.3"
   },
   "require-dev": {
     "10up/phpcs-composer": "^3.0",
@@ -23,10 +21,7 @@
   "autoload": {
     "psr-4": {
       "SesamyPlugin\\": "src/"
-    },
-    "files": [
-      "src/Support/helpers.php"
-    ]
+    }
   },
   "extra": {
     "installer-paths": {

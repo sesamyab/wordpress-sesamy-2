@@ -28,9 +28,7 @@ const SesamySettingsPanel = () => {
 		_sesamy_custom_paywall_url,
 	} = meta;
 
-	const [displayPrice, setDisplayPrice] = useState(
-		_sesamy_price === null ? '' : _sesamy_price.toString(),
-	);
+	const [displayPrice, setDisplayPrice] = useState(_sesamy_price ? _sesamy_price.toString() : '');
 
 	const handlePriceChange = (value) => {
 		// Validate the input value
@@ -124,7 +122,11 @@ const SesamySettingsPanel = () => {
 										label={`${__('Price', 'sesamy')}${settings?.default_currency ? ` (in ${settings.default_currency})` : ''}`}
 										value={displayPrice}
 										onChange={handlePriceChange}
-										help={`Optional, default article price is ${settings?.default_price} ${settings?.default_currency}`}
+										help={
+											settings?.default_price && settings?.default_currency
+												? `Optional, default article price is ${settings?.default_price} ${settings?.default_currency}`
+												: ''
+										}
 									/>
 								</PanelRow>
 							)}

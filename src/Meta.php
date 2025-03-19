@@ -7,38 +7,25 @@
 
 namespace SesamyPlugin;
 
-use TenupFramework\Module;
-use TenupFramework\ModuleInterface;
-
 use function SesamyPlugin\Helpers\get_enabled_post_types;
 use function SesamyPlugin\Helpers\is_config_valid;
-
 
 /**
  * Meta module.
  *
  * @package Sesamy2
  */
-class Meta implements ModuleInterface {
-
-	use Module;
-
-	/**
-	 * Can this module be registered?
-	 *
-	 * @return bool
-	 */
-	public function can_register() {
-		return is_config_valid();
-	}
+class Meta {
 
 	/**
 	 * Register any hooks and filters.
 	 *
 	 * @return void
 	 */
-	public function register() {
-		add_action( 'wp_head', [ $this, 'add_meta_tags' ] );
+	public static function register() {
+		if ( is_config_valid() ) {
+			add_action( 'wp_head', [ static::class, 'add_meta_tags' ] );
+		}
 	}
 
 	/**
@@ -46,7 +33,7 @@ class Meta implements ModuleInterface {
 	 *
 	 * @return void
 	 */
-	public function add_meta_tags() {
+	public static function add_meta_tags() {
 		if ( is_singular() ) {
 			global $post;
 			$enabled_post_types = get_enabled_post_types();

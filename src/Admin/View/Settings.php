@@ -7,37 +7,22 @@
 
 namespace SesamyPlugin\Admin\View;
 
-use TenupFramework\Module;
-use TenupFramework\ModuleInterface;
-
 use function SesamyPlugin\Helpers\get_sesamy_setting;
-use function SesamyPlugin\Helpers\is_config_valid;
 
 /**
  * Settings View module.
  *
  * @package Sesamy2
  */
-class Settings implements ModuleInterface {
-
-	use Module;
-
-	/**
-	 * Can this module be registered?
-	 *
-	 * @return bool
-	 */
-	public function can_register() {
-		return is_config_valid();
-	}
+class Settings {
 
 	/**
 	 * Register any hooks and filters.
 	 *
 	 * @return void
 	 */
-	public function register() {
-		add_action( 'admin_menu', [ $this, 'add_sesamy_settings_page' ] );
+	public static function register() {
+		add_action( 'admin_menu', [ static::class, 'add_sesamy_settings_page' ] );
 	}
 
 	/**
@@ -45,13 +30,13 @@ class Settings implements ModuleInterface {
 	 *
 	 * @return void
 	 */
-	public function add_sesamy_settings_page() {
+	public static function add_sesamy_settings_page() {
 		add_menu_page(
 			'Sesamy Settings',
 			'Sesamy',
 			'manage_options',
 			'sesamy',
-			[ $this, 'admin_page' ],
+			[ static::class, 'admin_page' ],
 			SESAMY_PLUGIN_URL . 'dist/images/sesamy.svg',
 			100
 		);
@@ -62,7 +47,7 @@ class Settings implements ModuleInterface {
 	 *
 	 * @return void
 	 */
-	public function admin_page() {
+	public static function admin_page() {
 		?>
 		<div class="wrap" id="sesamy-settings">
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>

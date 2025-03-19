@@ -7,9 +7,6 @@
 
 namespace SesamyPlugin\Admin\Settings;
 
-use TenupFramework\Module;
-use TenupFramework\ModuleInterface;
-
 use function SesamyPlugin\Helpers\get_enabled_post_types;
 use function SesamyPlugin\Helpers\is_config_valid;
 
@@ -18,42 +15,23 @@ use function SesamyPlugin\Helpers\is_config_valid;
  *
  * @package Sesamy2
  */
-class Post implements ModuleInterface {
-
-	use Module;
-
-	/**
-	 * Can this module be registered?
-	 *
-	 * @return bool
-	 */
-	public function can_register() {
-		return is_config_valid();
-	}
+class Post {
 
 	/**
 	 * Register any hooks and filters.
 	 *
 	 * @return void
 	 */
-	public function register() {
-		add_action( 'init', [ $this, 'register_sesamy_settings' ] );
-		add_action( 'init', [ $this, 'register_slot_fill_meta' ] );
-	}
-
-	/**
-	 * Register settings.
-	 *
-	 * @return void
-	 */
-	public function register_sesamy_settings() {
-		register_setting( 'sesamy', 'sesamy_settings' );
+	public static function register() {
+		if ( is_config_valid() ) {
+			add_action( 'init', [ static::class, 'register_slot_fill_meta' ] );
+		}
 	}
 
 	/**
 	 * Registers the `display-mode` post meta for use in the SlotFill lesson.
 	 */
-	public function register_slot_fill_meta() {
+	public static function register_slot_fill_meta() {
 		$enabled_post_types = get_enabled_post_types();
 
 		if ( $enabled_post_types ) {

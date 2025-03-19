@@ -7,37 +7,21 @@
 
 namespace SesamyPlugin\Admin\Settings;
 
-use TenupFramework\Module;
-use TenupFramework\ModuleInterface;
-
-use function SesamyPlugin\Helpers\is_config_valid;
-
 /**
  * Core Settings module.
  *
  * @package Sesamy2
  */
-class Core implements ModuleInterface {
-
-	use Module;
-
-	/**
-	 * Can this module be registered?
-	 *
-	 * @return bool
-	 */
-	public function can_register() {
-		return is_config_valid();
-	}
+class Core {
 
 	/**
 	 * Register any hooks and filters.
 	 *
 	 * @return void
 	 */
-	public function register() {
-		add_action( 'init', [ $this, 'register_sesamy_settings' ] );
-		add_action( 'admin_init', [ $this, 'add_sesamy_setting_fields' ] );
+	public static function register() {
+		add_action( 'init', [ static::class, 'register_sesamy_settings' ] );
+		add_action( 'admin_init', [ static::class, 'add_sesamy_setting_fields' ] );
 	}
 
 	/**
@@ -45,7 +29,7 @@ class Core implements ModuleInterface {
 	 *
 	 * @return void
 	 */
-	public function register_sesamy_settings() {
+	public static function register_sesamy_settings() {
 		register_setting(
 			'sesamy',
 			'sesamy_settings',
@@ -96,7 +80,7 @@ class Core implements ModuleInterface {
 	 *
 	 * @return void
 	 */
-	public function add_sesamy_setting_fields() {
+	public static function add_sesamy_setting_fields() {
 		$admin_settings_view = new \SesamyPlugin\Admin\View\Settings();
 
 		add_settings_section(

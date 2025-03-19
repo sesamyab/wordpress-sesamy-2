@@ -7,9 +7,6 @@
 
 namespace SesamyPlugin;
 
-use TenupFramework\Module;
-use TenupFramework\ModuleInterface;
-
 use function SesamyPlugin\Helpers\get_enabled_post_types;
 use function SesamyPlugin\Helpers\get_sesamy_setting;
 use function SesamyPlugin\Helpers\is_config_valid;
@@ -19,27 +16,18 @@ use function SesamyPlugin\Helpers\is_config_valid;
  *
  * @package Sesamy2
  */
-class ContentContainer implements ModuleInterface {
-
-	use Module;
-
-	/**
-	 * Can this module be registered?
-	 *
-	 * @return bool
-	 */
-	public function can_register() {
-		return is_config_valid();
-	}
+class ContentContainer {
 
 	/**
 	 * Register any hooks and filters.
 	 *
 	 * @return void
 	 */
-	public function register() {
-		add_filter( 'the_content', [ $this, 'apply_content_filter' ] );
-		add_filter( 'sesamy_content', [ $this, 'process_content' ], 999, 2 );
+	public static function register() {
+		if ( is_config_valid() ) {
+			add_filter( 'the_content', [ static::class, 'apply_content_filter' ] );
+			add_filter( 'sesamy_content', [ static::class, 'process_content' ], 999, 2 );
+		}
 	}
 
 	/**
@@ -48,7 +36,7 @@ class ContentContainer implements ModuleInterface {
 	 * @param string $content The content.
 	 * @return string
 	 */
-	public function apply_content_filter( $content ) {
+	public static function apply_content_filter( $content ) {
 		// Using the <!-- more --> will break core if excerpt is empty as this will cause an infite loop.
 		// See: https://github.com/WordPress/gutenberg/issues/5572#issuecomment-407756810.
 		if ( doing_filter( 'get_the_excerpt' ) ) {
@@ -71,11 +59,11 @@ class ContentContainer implements ModuleInterface {
 	 * @param string   $content The content.
 	 * @return string
 	 */
-	public function process_content( $post, $content ) {
+	public static function process_content( $post, $content ) {
 		$is_locked = get_post_meta( $post->ID, '_sesamy_locked', true );
 		$lock_mode = get_sesamy_setting( 'lock_mode' );
-		$preview   = apply_filters( 'sesamy_paywall_preview', $this->extract_preview( $post ) );
-		$paywall   = apply_filters( 'sesamy_paywall', $this->render_paywall() );
+		$preview   = apply_filters( 'sesamy_paywall_preview', static::extract_preview( $post ) );
+		$paywall   = apply_filters( 'sesamy_paywall', static::render_paywall() );
 
 		$html  = '<sesamy-article item-src="' . esc_url( get_permalink( $post->ID ) ) . '" publisher-content-id="' . esc_attr( $post->ID ) . '">';
 		$html .= '<sesamy-content-container lock-mode="' . esc_attr( $lock_mode ) . '">';
@@ -99,7 +87,7 @@ class ContentContainer implements ModuleInterface {
 	 *
 	 * @return string
 	 */
-	public function render_paywall() {
+	public static function render_paywall() {
 		$custom_settings_url  = get_post_meta( get_the_ID(), '_sesamy_custom_paywall_url', true );
 		$default_settings_url = get_sesamy_setting( 'default_paywall' );
 		$settings_url         = ! empty( $custom_settings_url ) ? $custom_settings_url : $default_settings_url;
@@ -115,7 +103,7 @@ class ContentContainer implements ModuleInterface {
 	 * @param \WP_Post $post The post object.
 	 * @return string
 	 */
-	public function extract_preview( $post ) {
+	public static function extract_preview( $post ) {
 		// Caution: WordPress has two blocks, the original "more" and the "read-more". We support the "more" as that is intended for cutting previews.
 		// Retrieve content before <!-- more --> if defined, otherwise use get_the_excerpt as default.
 		$extended = get_extended( $post->post_content );
