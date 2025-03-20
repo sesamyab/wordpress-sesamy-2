@@ -178,10 +178,9 @@ class Core {
 			[
 				'name'    => 'lock_mode',
 				'options' => [
-					''       => 'Select',
-					'embed'  => 'Embed',
 					'encode' => 'Encode',
-					'proxy'  => 'Proxy',
+					'embed'  => 'Embed',
+					// 'proxy'  => 'Proxy', TODO: Add proxy support
 				],
 			]
 		);

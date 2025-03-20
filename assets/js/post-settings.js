@@ -4,7 +4,7 @@
 import { useSelect, useDispatch } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { registerPlugin } from '@wordpress/plugins';
-import { ToggleControl, SelectControl, PanelRow, TextControl } from '@wordpress/components';
+import { ToggleControl, PanelRow, TextControl } from '@wordpress/components';
 
 import { PluginDocumentSettingPanel as PluginDocumentSettingPanelDeprecated } from '@wordpress/edit-post'; // Deprecated from WP 6.6
 import { PluginDocumentSettingPanel as PluginDocumentSettingPanelCurrent } from '@wordpress/editor'; // Only available from WP 6.6
@@ -77,6 +77,7 @@ const SesamySettingsPanel = () => {
 			</PanelRow>
 			{_sesamy_locked && (
 				<>
+					{/* TODO: access level
 					<PanelRow>
 						<SelectControl
 							__nextHasNoMarginBottom
@@ -97,6 +98,7 @@ const SesamySettingsPanel = () => {
 							}}
 						/>
 					</PanelRow>
+					*/}
 					{_sesamy_access_level === 'entitlement' && (
 						<>
 							<PanelRow>
