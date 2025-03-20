@@ -70,9 +70,13 @@ class Assets {
 			return;
 		}
 		$client_id = get_sesamy_setting( 'client_id' );
+
+		$dev_mode            = get_sesamy_setting( 'development_mode' );
+		$sesamy_scripts_host = $dev_mode ? 'https://scripts.sesamy.dev' : 'https://scripts.sesamy.com';
+
 		wp_enqueue_script_module(
 			'sesamy_bundle',
-			'https://scripts.sesamy.dev/s/' . $client_id . '/bundle',
+			$sesamy_scripts_host . '/s/' . $client_id . '/bundle',
 			[],
 			SESAMY_PLUGIN_VERSION
 		);

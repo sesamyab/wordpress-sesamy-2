@@ -178,10 +178,10 @@ class Core {
 			[
 				'name'    => 'lock_mode',
 				'options' => [
-					''           => 'Select',
-					'embed'      => 'Embed',
-					'encode'     => 'Encode',
-					'signed-url' => 'Signed URL',
+					''       => 'Select',
+					'embed'  => 'Embed',
+					'encode' => 'Encode',
+					'proxy'  => 'Proxy',
 				],
 			]
 		);
@@ -198,19 +198,34 @@ class Core {
 		);
 
 		add_settings_field(
-			'render_settings',
-			__( 'Render', 'sesamy' ),
+			'development_mode',
+			__( 'Development Mode', 'sesamy' ),
 			[ $admin_settings_view, 'settings_render_checkbox_list' ],
 			'sesamy',
 			'section_general',
 			[
-				'name'    => 'render_settings',
+				'name'    => 'development_mode',
 				'options' => [
-					'meta'    => 'Metadata',
-					'paywall' => 'Paywall',
-					'js'      => 'JavaScript',
+					'enabled' => 'Enable',
 				],
 			]
 		);
+
+		// TODO: Add render settings
+		// add_settings_field(
+		// 'render_settings',
+		// __( 'Render', 'sesamy' ),
+		// [ $admin_settings_view, 'settings_render_checkbox_list' ],
+		// 'sesamy',
+		// 'section_general',
+		// [
+		// 'name'    => 'render_settings',
+		// 'options' => [
+		// 'meta'    => 'Metadata',
+		// 'paywall' => 'Paywall',
+		// 'js'      => 'JavaScript',
+		// ],
+		// ]
+		// );
 	}
 }
