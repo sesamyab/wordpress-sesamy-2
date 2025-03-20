@@ -71,7 +71,7 @@ class ContentContainer {
 		if ( 'embed' === $lock_mode ) {
 			$html .= '<div slot="content">' . $content . '</div>';
 		} elseif ( 'encode' === $lock_mode ) {
-			$html .= '<div slot="content">' . base64_encode( $content ) . '</div>';
+			$html .= '<div slot="content" style="display:none;">' . base64_encode( $content ) . '</div>';
 		}
 		$html .= '</sesamy-content-container>';
 		if ( $is_locked ) {
