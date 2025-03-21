@@ -102,17 +102,18 @@ class Core {
 			]
 		);
 
-		add_settings_field(
-			'client_secret',
-			__( 'Client Secret', 'sesamy' ),
-			[ $admin_settings_view, 'settings_render_textfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'      => 'client_secret',
-				'label_for' => 'client_secret',
-			]
-		);
+		// TODO: Add client secret when needed
+		// add_settings_field(
+		// 'client_secret',
+		// __( 'Client Secret', 'sesamy' ),
+		// [ $admin_settings_view, 'settings_render_textfield' ],
+		// 'sesamy',
+		// 'section_general',
+		// [
+		// 'name'      => 'client_secret',
+		// 'label_for' => 'client_secret',
+		// ]
+		// );
 
 		add_settings_field(
 			'default_currency',

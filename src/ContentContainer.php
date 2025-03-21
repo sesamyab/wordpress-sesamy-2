@@ -111,7 +111,7 @@ class ContentContainer {
 		if ( ! empty( $extended['main'] ) && ! empty( $extended['extended'] ) ) {
 			return $extended['main'];
 		} else {
-			return get_the_excerpt();
+			return '<p>' . get_the_excerpt() . '</p>';
 		}
 	}
 }
