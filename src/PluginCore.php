@@ -33,13 +33,13 @@ class PluginCore {
 	public function init() {
 		do_action( 'sesamy_plugin_init' );
 
-		// Register class interfaces
-		\SesamyPlugin\Admin\Settings\Core::register();
-		\SesamyPlugin\Admin\Settings\Post::register();
-		\SesamyPlugin\Admin\View\Settings::register();
-		\SesamyPlugin\ContentContainer::register();
-		\SesamyPlugin\Meta::register();
-		\SesamyPlugin\Assets::register();
+		// Init class interfaces
+		\SesamyPlugin\Admin\Settings\Core::init();
+		\SesamyPlugin\Admin\Settings\Post::init();
+		\SesamyPlugin\Admin\View\Settings::init();
+		\SesamyPlugin\ContentContainer::init();
+		\SesamyPlugin\Meta::init();
+		\SesamyPlugin\Assets::init();
 	}
 
 	/**

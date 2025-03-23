@@ -13,15 +13,25 @@ namespace SesamyPlugin\Admin\Settings;
  * @package Sesamy2
  */
 class Core {
+	/**
+	 * Initialize the Assets module.
+	 *
+	 * @return self
+	 */
+	public static function init() {
+		$instance = new self();
+		$instance->register();
+		return $instance;
+	}
 
 	/**
 	 * Register any hooks and filters.
 	 *
 	 * @return void
 	 */
-	public static function register() {
-		add_action( 'init', [ static::class, 'register_sesamy_settings' ] );
-		add_action( 'admin_init', [ static::class, 'add_sesamy_setting_fields' ] );
+	public function register() {
+		add_action( 'init', [ $this, 'register_sesamy_settings' ] );
+		add_action( 'admin_init', [ $this, 'add_sesamy_setting_fields' ] );
 	}
 
 	/**
@@ -29,7 +39,7 @@ class Core {
 	 *
 	 * @return void
 	 */
-	public static function register_sesamy_settings() {
+	public function register_sesamy_settings() {
 		register_setting(
 			'sesamy',
 			'sesamy_settings',
@@ -80,7 +90,7 @@ class Core {
 	 *
 	 * @return void
 	 */
-	public static function add_sesamy_setting_fields() {
+	public function add_sesamy_setting_fields() {
 		$admin_settings_view = new \SesamyPlugin\Admin\View\Settings();
 
 		add_settings_section(

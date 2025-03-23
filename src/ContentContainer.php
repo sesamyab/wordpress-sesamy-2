@@ -17,16 +17,26 @@ use function SesamyPlugin\Helpers\is_config_valid;
  * @package Sesamy2
  */
 class ContentContainer {
+	/**
+	 * Initialize the Assets module.
+	 *
+	 * @return self
+	 */
+	public static function init() {
+		$instance = new self();
+		$instance->register();
+		return $instance;
+	}
 
 	/**
 	 * Register any hooks and filters.
 	 *
 	 * @return void
 	 */
-	public static function register() {
+	public function register() {
 		if ( is_config_valid() ) {
-			add_filter( 'the_content', [ static::class, 'apply_content_filter' ] );
-			add_filter( 'sesamy_content', [ static::class, 'process_content' ], 999, 2 );
+			add_filter( 'the_content', [ $this, 'apply_content_filter' ] );
+			add_filter( 'sesamy_content', [ $this, 'process_content' ], 999, 2 );
 		}
 	}
 
@@ -36,7 +46,7 @@ class ContentContainer {
 	 * @param string $content The content.
 	 * @return string
 	 */
-	public static function apply_content_filter( $content ) {
+	public function apply_content_filter( $content ) {
 		// Using the <!-- more --> will break core if excerpt is empty as this will cause an infite loop.
 		// See: https://github.com/WordPress/gutenberg/issues/5572#issuecomment-407756810.
 		if ( doing_filter( 'get_the_excerpt' ) ) {
@@ -59,7 +69,7 @@ class ContentContainer {
 	 * @param string   $content The content.
 	 * @return string
 	 */
-	public static function process_content( $post, $content ) {
+	public function process_content( $post, $content ) {
 		$is_locked = get_post_meta( $post->ID, '_sesamy_locked', true );
 		$lock_mode = get_sesamy_setting( 'lock_mode' );
 		$preview   = apply_filters( 'sesamy_paywall_preview', static::extract_preview( $post ) );
@@ -87,7 +97,7 @@ class ContentContainer {
 	 *
 	 * @return string
 	 */
-	public static function render_paywall() {
+	public function render_paywall() {
 		$custom_settings_url  = get_post_meta( get_the_ID(), '_sesamy_custom_paywall_url', true );
 		$default_settings_url = get_sesamy_setting( 'default_paywall' );
 		$settings_url         = ! empty( $custom_settings_url ) ? $custom_settings_url : $default_settings_url;
@@ -103,7 +113,7 @@ class ContentContainer {
 	 * @param \WP_Post $post The post object.
 	 * @return string
 	 */
-	public static function extract_preview( $post ) {
+	public function extract_preview( $post ) {
 		// Caution: WordPress has two blocks, the original "more" and the "read-more". We support the "more" as that is intended for cutting previews.
 		// Retrieve content before <!-- more --> if defined, otherwise use get_the_excerpt as default.
 		$extended = get_extended( $post->post_content );

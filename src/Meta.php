@@ -16,15 +16,25 @@ use function SesamyPlugin\Helpers\is_config_valid;
  * @package Sesamy2
  */
 class Meta {
+	/**
+	 * Initialize the Assets module.
+	 *
+	 * @return self
+	 */
+	public static function init() {
+		$instance = new self();
+		$instance->register();
+		return $instance;
+	}
 
 	/**
 	 * Register any hooks and filters.
 	 *
 	 * @return void
 	 */
-	public static function register() {
+	public function register() {
 		if ( is_config_valid() ) {
-			add_action( 'wp_head', [ static::class, 'add_meta_tags' ] );
+			add_action( 'wp_head', [ $this, 'add_meta_tags' ] );
 		}
 	}
 
@@ -33,7 +43,7 @@ class Meta {
 	 *
 	 * @return void
 	 */
-	public static function add_meta_tags() {
+	public function add_meta_tags() {
 		if ( is_singular() ) {
 			global $post;
 			$enabled_post_types = get_enabled_post_types();

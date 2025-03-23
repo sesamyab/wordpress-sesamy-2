@@ -16,22 +16,32 @@ use function SesamyPlugin\Helpers\is_config_valid;
  * @package Sesamy2
  */
 class Post {
+	/**
+	 * Initialize the Assets module.
+	 *
+	 * @return self
+	 */
+	public static function init() {
+		$instance = new self();
+		$instance->register();
+		return $instance;
+	}
 
 	/**
 	 * Register any hooks and filters.
 	 *
 	 * @return void
 	 */
-	public static function register() {
+	public function register() {
 		if ( is_config_valid() ) {
-			add_action( 'init', [ static::class, 'register_slot_fill_meta' ] );
+			add_action( 'init', [ $this, 'register_slot_fill_meta' ] );
 		}
 	}
 
 	/**
 	 * Registers the `display-mode` post meta for use in the SlotFill lesson.
 	 */
-	public static function register_slot_fill_meta() {
+	public function register_slot_fill_meta() {
 		$enabled_post_types = get_enabled_post_types();
 
 		if ( $enabled_post_types ) {

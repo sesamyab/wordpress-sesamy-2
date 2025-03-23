@@ -15,14 +15,24 @@ use function SesamyPlugin\Helpers\get_sesamy_setting;
  * @package Sesamy2
  */
 class Settings {
+	/**
+	 * Initialize the Assets module.
+	 *
+	 * @return self
+	 */
+	public static function init() {
+		$instance = new self();
+		$instance->register();
+		return $instance;
+	}
 
 	/**
 	 * Register any hooks and filters.
 	 *
 	 * @return void
 	 */
-	public static function register() {
-		add_action( 'admin_menu', [ static::class, 'add_sesamy_settings_page' ] );
+	public function register() {
+		add_action( 'admin_menu', [ $this, 'add_sesamy_settings_page' ] );
 	}
 
 	/**
@@ -30,13 +40,13 @@ class Settings {
 	 *
 	 * @return void
 	 */
-	public static function add_sesamy_settings_page() {
+	public function add_sesamy_settings_page() {
 		add_menu_page(
 			'Sesamy Settings',
 			'Sesamy',
 			'manage_options',
 			'sesamy',
-			[ static::class, 'admin_page' ],
+			[ $this, 'admin_page' ],
 			SESAMY_PLUGIN_URL . 'dist/images/sesamy.svg',
 			100
 		);
@@ -47,7 +57,7 @@ class Settings {
 	 *
 	 * @return void
 	 */
-	public static function admin_page() {
+	public function admin_page() {
 		?>
 		<div class="wrap" id="sesamy-settings">
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
