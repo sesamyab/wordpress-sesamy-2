@@ -40,6 +40,8 @@ class Post {
 
 	/**
 	 * Registers the `display-mode` post meta for use in the SlotFill lesson.
+	 *
+	 * @return void
 	 */
 	public function register_slot_fill_meta() {
 		$enabled_post_types = get_enabled_post_types();

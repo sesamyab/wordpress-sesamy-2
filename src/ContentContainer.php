@@ -75,7 +75,9 @@ class ContentContainer {
 		$preview   = apply_filters( 'sesamy_paywall_preview', static::extract_preview( $post ) );
 		$paywall   = apply_filters( 'sesamy_paywall', static::render_paywall() );
 
-		$html  = '<sesamy-article item-src="' . esc_url( get_permalink( $post->ID ) ) . '" publisher-content-id="' . esc_attr( $post->ID ) . '">';
+		$item_src = get_permalink( $post->ID ) ? (string) get_permalink( $post->ID ) : '';
+
+		$html  = '<sesamy-article item-src="' . esc_url( $item_src ) . '" publisher-content-id="' . esc_attr( (string) $post->ID ) . '">';
 		$html .= '<sesamy-content-container lock-mode="' . esc_attr( $lock_mode ) . '">';
 		$html .= '<div slot="preview">' . $preview . '</div>';
 		if ( 'embed' === $lock_mode ) {
@@ -98,7 +100,12 @@ class ContentContainer {
 	 * @return string
 	 */
 	public function render_paywall() {
-		$custom_settings_url  = get_post_meta( get_the_ID(), '_sesamy_custom_paywall_url', true );
+		$post_id = get_the_ID();
+		if ( $post_id ) {
+			$custom_settings_url = get_post_meta( $post_id, '_sesamy_custom_paywall_url', true );
+		} else {
+			$custom_settings_url = '';
+		}
 		$default_settings_url = get_sesamy_setting( 'default_paywall' );
 		$settings_url         = ! empty( $custom_settings_url ) ? $custom_settings_url : $default_settings_url;
 		if ( empty( $settings_url ) ) {
