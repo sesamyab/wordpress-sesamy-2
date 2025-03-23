@@ -40,6 +40,7 @@ class PluginCore {
 		\SesamyPlugin\ContentContainer::init();
 		\SesamyPlugin\Meta::init();
 		\SesamyPlugin\Assets::init();
+		\SesamyPlugin\Rest::init();
 	}
 
 	/**
