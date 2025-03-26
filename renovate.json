@@ -17,6 +17,12 @@
       "description": "Get GitHub Actions updates once a month",
       "matchDepTypes": ["action"],
       "extends": ["schedule:monthly"]
+    },
+    {
+      "matchFiles": ["composer.json"],
+      "matchPackagePatterns": ["*"],
+      "allowedVersions": "<=7.3.99",
+      "enabled": false
     }
   ],
   "automergeSchedule": [
