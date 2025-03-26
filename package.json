@@ -17,9 +17,9 @@
     "node": ">=18.0.0"
   },
   "devDependencies": {
-    "10up-toolkit": "^6.4.1",
-    "husky": "^9.1.7",
-    "lint-staged": "^15.5.0"
+    "10up-toolkit": "6.4.1",
+    "husky": "9.1.7",
+    "lint-staged": "15.5.0"
   },
   "dependencies": {
     "@wordpress/api-fetch": "^7.20.0",
