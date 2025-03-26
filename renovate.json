@@ -15,14 +15,22 @@
   "packageRules": [
     {
       "description": "Get GitHub Actions updates once a month",
-      "matchDepTypes": ["action"],
-      "extends": ["schedule:monthly"]
+      "matchDepTypes": [
+        "action"
+      ],
+      "extends": [
+        "schedule:monthly"
+      ]
     },
     {
-      "matchFiles": ["composer.json"],
-      "matchPackagePatterns": ["*"],
+      "matchFileNames": [
+        "composer.json"
+      ],
       "allowedVersions": "<=7.3.99",
-      "enabled": false
+      "enabled": false,
+      "matchPackageNames": [
+        "*"
+      ]
     }
   ],
   "automergeSchedule": [
