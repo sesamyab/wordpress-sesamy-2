@@ -35,6 +35,17 @@ class Post {
 	public function register() {
 		if ( is_config_valid() ) {
 			add_action( 'init', [ $this, 'register_slot_fill_meta' ] );
+			add_filter( 'manage_post_posts_columns', [ $this, 'add_custom_column' ] );
+			add_action( 'manage_post_posts_custom_column', [ $this, 'populate_custom_column' ], 10, 2 );
+
+			// Add to quick edit
+			add_action( 'quick_edit_custom_box', [ $this, 'add_quick_edit_field' ], 10, 2 );
+			// Save quick edit data
+			add_action( 'save_post', [ $this, 'save_quick_edit_data' ], 10, 1 );
+			// Add to bulk edit
+			add_action( 'bulk_edit_custom_box', [ $this, 'add_bulk_edit_field' ], 10, 2 );
+			// Save bulk edit data
+			add_action( 'save_post', [ $this, 'save_bulk_edit_data' ], 10, 1 );
 		}
 	}
 
@@ -105,6 +116,144 @@ class Post {
 					]
 				);
 			}
+		}
+	}
+
+	/**
+	 * Adds a custom column to the post list table.
+	 *
+	 * @param array $columns An array of column names.
+	 * @return array Modified array of column names.
+	 */
+	public function add_custom_column( $columns ) {
+		$columns['sesamy'] = 'Sesamy';
+		return $columns;
+	}
+
+	/**
+	 * Populates the custom column in the post list table.
+	 *
+	 * @param string $column_name The name of the column.
+	 * @param int    $post_id     The ID of the post.
+	 * @return void
+	 */
+	public function populate_custom_column( $column_name, $post_id ) {
+		if ( 'sesamy' === $column_name ) {
+			$is_locked       = get_post_meta( $post_id, '_sesamy_locked', true );
+			$single_purchase = get_post_meta( $post_id, '_sesamy_enable_single_purchase', true );
+
+			$value  = $is_locked ? '<div class="column-sesamy_locked">Locked</div>' : '';
+			$value .= $is_locked && $single_purchase ? '<div class="column-sesamy_single_purchase">Single Purchase</div>' : '';
+			echo wp_kses_post( $value );
+		}
+	}
+
+	/**
+	 * Adds a quick edit field to the post list table.
+	 *
+	 * @param string $column_name The name of the column.
+	 * @param string $post_type   The post type.
+	 * @return void
+	 */
+	public function add_quick_edit_field( $column_name, $post_type ) {
+		// TODO: check enabled post types instead of only post
+		if ( 'sesamy' !== $column_name || 'post' !== $post_type ) {
+			return;
+		}
+		?>
+		<fieldset class="inline-edit-col-right" style="margin-top:10px;">
+			<div class="inline-edit-col">
+				<strong>Sesamy</strong>
+				<div class="inline-edit-group wp-clearfix">
+					<label class="alignleft">
+						<input type="checkbox" name="_sesamy_locked" />
+						<span class="checkbox-title">Locked</span>
+					</label>
+					<label class="alignleft">
+						<input type="checkbox" name="_sesamy_enable_single_purchase" />
+						<span class="checkbox-title">Single purchase</span>
+					</label>
+				</div>
+			</div>
+		</fieldset>
+		<?php
+	}
+
+	/**
+	 * Saves the quick edit data for the post.
+	 *
+	 * @param int $post_id The ID of the post being saved.
+	 * @return void
+	 */
+	public function save_quick_edit_data( $post_id ) {
+		if ( ! current_user_can( 'edit_post', $post_id ) || ! isset( $_POST['_inline_edit'] ) ) {
+			return;
+		}
+		check_admin_referer( 'inlineeditnonce', '_inline_edit' );
+
+		$locked = isset( $_POST['_sesamy_locked'] ) ? 1 : 0;
+		update_post_meta( $post_id, '_sesamy_locked', $locked );
+		$single_purchase = isset( $_POST['_sesamy_enable_single_purchase'] ) ? 1 : 0;
+		update_post_meta( $post_id, '_sesamy_enable_single_purchase', $single_purchase );
+	}
+
+	/**
+	 * Adds a bulk edit field to the post list table.
+	 *
+	 * @param string $column_name The name of the column.
+	 * @param string $post_type   The post type.
+	 * @return void
+	 */
+	public function add_bulk_edit_field( $column_name, $post_type ) {
+		// TODO check enabled post types
+		if ( 'sesamy' !== $column_name || 'post' !== $post_type ) {
+			return;
+		}
+		wp_nonce_field( 'sesamy_bulk_edit_action', 'sesamy_bulk_edit_nonce' );
+		?>
+		<fieldset class="inline-edit-col-right sesamy-bulk-edit">
+			<div class="inline-edit-legend">Sesamy</div>
+			<div class="inline-edit-col">
+				<label class="inline-edit-sesamy-locked wp-clearfix">
+					<span class="title">Locked</span>
+					<select name="sesamy_locked">
+						<option value="-1">— No Change —</option>
+						<option value="1">Locked</option>
+						<option value="0">Not Locked</option>
+					</select>
+				</label>
+				<label class="inline-edit-sesamy-single-purchase wp-clearfix">
+					<span class="title">Single Purchase</span>
+					<select name="sesamy_single_purchase">
+						<option value="-1">— No Change —</option>
+						<option value="1">Enabled</option>
+						<option value="0">Disabled</option>
+					</select>
+				</label>
+			</div>
+		</fieldset>
+		<?php
+	}
+
+	/**
+	 * Saves the bulk edit data for the post.
+	 *
+	 * @param int $post_id The ID of the post being saved.
+	 * @return void
+	 */
+	public function save_bulk_edit_data( $post_id ) {
+		// Verify nonce
+		if ( ! isset( $_GET['sesamy_bulk_edit_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['sesamy_bulk_edit_nonce'] ) ), 'sesamy_bulk_edit_action' ) ) {
+			return;
+		}
+
+		if ( isset( $_GET['sesamy_locked'] ) && '-1' !== $_GET['sesamy_locked'] ) {
+			$is_locked = (bool) $_GET['sesamy_locked'];
+			update_post_meta( $post_id, '_sesamy_locked', $is_locked );
+		}
+		if ( isset( $_GET['sesamy_single_purchase'] ) && '-1' !== $_GET['sesamy_single_purchase'] ) {
+			$single_purchase = (bool) $_GET['sesamy_single_purchase'];
+			update_post_meta( $post_id, '_sesamy_enable_single_purchase', $single_purchase );
 		}
 	}
 }
