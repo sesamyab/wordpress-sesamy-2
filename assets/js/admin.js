@@ -7,7 +7,7 @@ import '../css/admin.css';
 
 	const wp_inline_edit = window.inlineEditPost.edit;
 	window.inlineEditPost.edit = function (id, ...args) {
-		wp_inline_edit.apply(this, args);
+		wp_inline_edit.apply(this, [id, ...args]);
 
 		const row = $(id).closest('tr');
 		const post_id = row.attr('id').replace(/^post-/, '');

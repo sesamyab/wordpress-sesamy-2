@@ -156,8 +156,8 @@ class Post {
 	 * @return void
 	 */
 	public function add_quick_edit_field( $column_name, $post_type ) {
-		// TODO: check enabled post types instead of only post
-		if ( 'sesamy' !== $column_name || 'post' !== $post_type ) {
+		$enabled_post_types = get_enabled_post_types();
+		if ( 'sesamy' !== $column_name || ! in_array( $post_type, $enabled_post_types, true ) ) {
 			return;
 		}
 		?>
@@ -205,8 +205,8 @@ class Post {
 	 * @return void
 	 */
 	public function add_bulk_edit_field( $column_name, $post_type ) {
-		// TODO check enabled post types
-		if ( 'sesamy' !== $column_name || 'post' !== $post_type ) {
+		$enabled_post_types = get_enabled_post_types();
+		if ( 'sesamy' !== $column_name || ! in_array( $post_type, $enabled_post_types, true ) ) {
 			return;
 		}
 		wp_nonce_field( 'sesamy_bulk_edit_action', 'sesamy_bulk_edit_nonce' );
@@ -246,13 +246,17 @@ class Post {
 		if ( ! isset( $_GET['sesamy_bulk_edit_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_GET['sesamy_bulk_edit_nonce'] ) ), 'sesamy_bulk_edit_action' ) ) {
 			return;
 		}
+		// Check user capabilities
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
 
 		if ( isset( $_GET['sesamy_locked'] ) && '-1' !== $_GET['sesamy_locked'] ) {
-			$is_locked = (bool) $_GET['sesamy_locked'];
+			$is_locked = sanitize_text_field( wp_unslash( $_GET['sesamy_locked'] ) ) === '1';
 			update_post_meta( $post_id, '_sesamy_locked', $is_locked );
 		}
 		if ( isset( $_GET['sesamy_single_purchase'] ) && '-1' !== $_GET['sesamy_single_purchase'] ) {
-			$single_purchase = (bool) $_GET['sesamy_single_purchase'];
+			$single_purchase = sanitize_text_field( wp_unslash( $_GET['sesamy_single_purchase'] ) ) === '1';
 			update_post_meta( $post_id, '_sesamy_enable_single_purchase', $single_purchase );
 		}
 	}
