@@ -60,6 +60,11 @@ class Meta {
 				$access_level = $is_locked ? get_post_meta( $post->ID, '_sesamy_access_level', true ) : 'public';
 				echo '<meta name="sesamy:accessLevel" content="' . esc_attr( $access_level ) . '">';
 
+				$currency = $options['default_currency'] ?? '';
+				if ( ! empty( $currency ) ) {
+					echo '<meta name="sesamy:currency" content="' . esc_attr( $currency ) . '">';
+				}
+
 				$single_purchase = (bool) ( get_post_meta( $post->ID, '_sesamy_enable_single_purchase', true ) ?? false );
 				if ( $single_purchase ) {
 					$default_price = $options['default_price'] ?? '';
