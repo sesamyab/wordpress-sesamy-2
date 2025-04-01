@@ -44,8 +44,8 @@ class Core {
 			'sesamy',
 			'sesamy_settings',
 			[
-				'type'         => 'object',
-				'show_in_rest' => [
+				'type'              => 'object',
+				'show_in_rest'      => [
 					'name'   => 'sesamy_settings',
 					'schema' => [
 						'type'       => 'object',
@@ -60,7 +60,7 @@ class Core {
 								'type' => 'string',
 							],
 							'default_price'         => [
-								'type' => 'number',
+								'type' => 'string',
 							],
 							'default_paywall'       => [
 								'type' => 'string',
@@ -80,8 +80,40 @@ class Core {
 						],
 					],
 				],
+				'sanitize_callback' => [ $this, 'sanitize_sesamy_settings' ],
 			]
 		);
+	}
+
+	/**
+	 * Sanitize settings.
+	 *
+	 * @param array $input The input settings.
+	 * @return array The sanitized settings.
+	 */
+	public function sanitize_sesamy_settings( $input ) {
+		$sanitized_input = [];
+
+		foreach ( $input as $key => $value ) {
+			switch ( $key ) {
+				case 'default_price':
+					$float = floatval( str_replace( ',', '.', $value ) );
+					if ( $float > 0 ) {
+						$sanitized_input[ $key ] = sanitize_text_field( (string) $float );
+					} else {
+						add_settings_error( 'sesamy_settings', 'default_price', __( 'Default price must be a positive number.', 'sesamy' ) );
+					}
+					break;
+				case 'enabled_content_types':
+					$sanitized_input[ $key ] = array_map( 'sanitize_text_field', (array) $value );
+					break;
+				default:
+					$sanitized_input[ $key ] = sanitize_text_field( $value );
+					break;
+			}
+		}
+
+		return $sanitized_input;
 	}
 
 
@@ -146,7 +178,7 @@ class Core {
 		add_settings_field(
 			'default_price',
 			__( 'Default Article Price', 'sesamy' ),
-			[ $admin_settings_view, 'settings_render_numberfield' ],
+			[ $admin_settings_view, 'settings_render_textfield' ],
 			'sesamy',
 			'section_general',
 			[

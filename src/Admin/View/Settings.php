@@ -63,6 +63,7 @@ class Settings {
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 			<form action="options.php" method="post">
 				<?php
+				settings_errors( 'sesamy_settings' );
 				settings_fields( 'sesamy' );
 				do_settings_sections( 'sesamy' );
 				submit_button( 'Save Settings' );
