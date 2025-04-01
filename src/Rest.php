@@ -89,7 +89,9 @@ class Rest {
 			}
 		}
 
-		return new \WP_REST_Response( array( 'content' => apply_filters( 'the_content', $post->post_content ) ) );
+		return new \WP_REST_Response(
+			array( 'content' => apply_filters( 'the_content', $post->post_content ) )
+		);
 	}
 
 	/**

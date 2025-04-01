@@ -37,14 +37,9 @@ class Post {
 			add_action( 'init', [ $this, 'register_slot_fill_meta' ] );
 			add_filter( 'manage_post_posts_columns', [ $this, 'add_custom_column' ] );
 			add_action( 'manage_post_posts_custom_column', [ $this, 'populate_custom_column' ], 10, 2 );
-
-			// Add to quick edit
 			add_action( 'quick_edit_custom_box', [ $this, 'add_quick_edit_field' ], 10, 2 );
-			// Save quick edit data
 			add_action( 'save_post', [ $this, 'save_quick_edit_data' ], 10, 1 );
-			// Add to bulk edit
 			add_action( 'bulk_edit_custom_box', [ $this, 'add_bulk_edit_field' ], 10, 2 );
-			// Save bulk edit data
 			add_action( 'save_post', [ $this, 'save_bulk_edit_data' ], 10, 1 );
 		}
 	}
@@ -142,8 +137,8 @@ class Post {
 			$is_locked       = get_post_meta( $post_id, '_sesamy_locked', true );
 			$single_purchase = get_post_meta( $post_id, '_sesamy_enable_single_purchase', true );
 
-			$value  = $is_locked ? '<div class="column-sesamy_locked">Locked</div>' : '';
-			$value .= $is_locked && $single_purchase ? '<div class="column-sesamy_single_purchase">Single Purchase</div>' : '';
+			$value  = $is_locked ? '<div class="column-sesamy_locked"><span class="dashicons dashicons-lock"></span> Locked</div>' : '';
+			$value .= $is_locked && $single_purchase ? '<div class="column-sesamy_single_purchase"><span class="dashicons dashicons-money-alt"></span> Single Purchase</div>' : '';
 			echo wp_kses_post( $value );
 		}
 	}
