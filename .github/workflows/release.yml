@@ -1,0 +1,54 @@
+name: Build & Upload Release Asset
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP with composer v2
+        uses: shivammathur/setup-php@9e72090525849c5e82e596468b86eb55e9cc5401 # v2
+        with:
+          php-version: "8.3"
+          tools: composer:v2
+
+      - name: Cache Composer packages
+        id: composer-cache
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-
+
+      - name: Run build zip script
+        run: |
+          chmod +x build-zip.sh
+          ./build-zip.sh
+
+      - name: Rename zip file with version
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          echo "Release version: $VERSION"
+          if [ "${{ github.event.release.prerelease }}" = "true" ]; then
+            ASSET_NAME="sesamy-wordpress-${VERSION}-rc.zip"
+          else
+            ASSET_NAME="sesamy-wordpress-${VERSION}.zip"
+          fi
+          echo "Asset name: $ASSET_NAME"
+          mv sesamy-wordpress.zip "$ASSET_NAME"
+          echo "ASSET_NAME=$ASSET_NAME" >> $GITHUB_ENV
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ${{ env.ASSET_NAME }}
+          asset_name: ${{ env.ASSET_NAME }}
+          asset_content_type: application/zip
