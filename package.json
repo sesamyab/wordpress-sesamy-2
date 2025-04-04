@@ -1,6 +1,6 @@
 {
   "name": "sesamy-wp-plugin",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Sesamy WordPress plugin",
   "scripts": {
     "wp-env": "wp-env start",
@@ -43,15 +43,8 @@
     }
   },
   "commit-and-tag-version": {
-    "bumpFiles": [
-      {
-        "filename": "package.json",
-        "type": "json"
-      },
-      {
-        "filename": "sesamy2.php",
-        "updater": "update-plugin-version.js"
-      }
-    ]
+    "scripts": {
+      "postbump": "npm run update-plugin-version && git add sesamy2.php"
+    }
   }
 }
