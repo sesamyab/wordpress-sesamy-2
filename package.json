@@ -43,8 +43,11 @@
     }
   },
   "commit-and-tag-version": {
-    "scripts": {
-      "postbump": "npm run update-plugin-version"
-    }
+    "bumpFiles": [
+      {
+        "filename": "sesamy2.php",
+        "updater": "update-plugin-version.js"
+      }
+    ]
   }
 }
