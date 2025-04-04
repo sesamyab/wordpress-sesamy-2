@@ -44,7 +44,7 @@
   },
   "commit-and-tag-version": {
     "scripts": {
-      "prerelease": "npm run update-plugin-version && git add sesamy2.php"
+      "precommit": "npm run update-plugin-version && git add sesamy2.php"
     }
   }
 }
