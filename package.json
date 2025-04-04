@@ -13,7 +13,7 @@
     "clean-dist": "rm -rf ./dist",
     "prepare": "husky",
     "update-plugin-version": "node update-plugin-version.js",
-    "release": "standard-version && npm run update-plugin-version"
+    "release": "standard-version --no-push && npm run update-plugin-version"
   },
   "engines": {
     "node": ">=18.0.0"
