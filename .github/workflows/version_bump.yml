@@ -29,5 +29,5 @@ jobs:
       - name: Commit changes
         run: |
           git add .
-          git commit -m "chore(release): update version"
+          git commit -m "chore(release): update version" --no-verify
           git push --follow-tags origin main
