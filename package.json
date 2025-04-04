@@ -24,7 +24,7 @@
     "10up-toolkit": "6.4.1",
     "husky": "9.1.7",
     "lint-staged": "15.5.0",
-    "standard-version": "^9.5.0"
+    "commit-and-tag-version": "9.5.0"
   },
   "dependencies": {
     "@wordpress/api-fetch": "^7.20.0",
