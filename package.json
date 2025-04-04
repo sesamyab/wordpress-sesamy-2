@@ -1,6 +1,6 @@
 {
   "name": "sesamy-wp-plugin",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "Sesamy WordPress plugin",
   "scripts": {
     "wp-env": "wp-env start",
