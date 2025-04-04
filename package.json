@@ -1,6 +1,6 @@
 {
   "name": "sesamy-wp-plugin",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Sesamy WordPress plugin",
   "scripts": {
     "wp-env": "wp-env start",
@@ -11,15 +11,20 @@
     "lint-style": "10up-toolkit lint-style",
     "test": "10up-toolkit test-unit-jest --passWithNoTests",
     "clean-dist": "rm -rf ./dist",
-    "prepare": "husky"
+    "prepare": "husky",
+    "update-plugin-version": "node update-plugin-version.js",
+    "release": "standard-version && npm run update-plugin-version"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^19.8.0",
+    "@commitlint/config-conventional": "^19.8.0",
     "10up-toolkit": "6.4.1",
     "husky": "9.1.7",
-    "lint-staged": "15.5.0"
+    "lint-staged": "15.5.0",
+    "standard-version": "^9.5.0"
   },
   "dependencies": {
     "@wordpress/api-fetch": "^7.20.0",
