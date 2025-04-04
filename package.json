@@ -1,6 +1,6 @@
 {
   "name": "sesamy-wp-plugin",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Sesamy WordPress plugin",
   "scripts": {
     "wp-env": "wp-env start",
@@ -13,7 +13,7 @@
     "clean-dist": "rm -rf ./dist",
     "prepare": "husky",
     "update-plugin-version": "node update-plugin-version.js",
-    "release": "commit-and-tag-version"
+    "release": "commit-and-tag-version --no-verify -a"
   },
   "engines": {
     "node": ">=18.0.0"
