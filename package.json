@@ -13,7 +13,7 @@
     "clean-dist": "rm -rf ./dist",
     "prepare": "husky",
     "update-plugin-version": "node update-plugin-version.js",
-    "release": "commit-and-tag-version --no-verify"
+    "release": "commit-and-tag-version -a --no-verify"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -44,7 +44,7 @@
   },
   "commit-and-tag-version": {
     "scripts": {
-      "postbump": "npm run update-plugin-version && git add sesamy2.php"
+      "prerelease": "npm run update-plugin-version && git add sesamy2.php"
     }
   }
 }
