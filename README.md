@@ -24,8 +24,8 @@ This plugin provides the core integration to:
 
 ## Requirements
 
-- WordPress `7.8` or higher
-- PHP `7.4` or higher
+- WordPress `4.9` or higher
+- PHP `7.2` or higher
 - A **Sesamy Publisher account** Please reach out to us for the inital setup
 
 ---
@@ -46,6 +46,6 @@ _(Alternatively, experienced users can clone the repository into their `/wp-cont
 
 ## Configuration
 
-1.  After activating the plugin, navigate to the **Sesamy** settings page in your WordPress admin menu (usually under `Settings > Sesamy`.
+1.  After activating the plugin, navigate to the **Sesamy** settings page in your WordPress admin menu.
 2.  Fill out the required settings
 3.  Click **Save Changes**.
