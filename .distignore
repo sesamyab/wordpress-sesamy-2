@@ -20,3 +20,5 @@ package-lock.json
 package.json
 phpcs.xml
 phpstan.neon
+commitlint.config.js
+update-plugin-version.js
