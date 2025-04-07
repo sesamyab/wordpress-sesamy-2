@@ -7,7 +7,9 @@
 
 namespace SesamyPlugin\Admin\View;
 
+use function SesamyPlugin\Helpers\get_releases;
 use function SesamyPlugin\Helpers\get_sesamy_setting;
+use function SesamyPlugin\Helpers\is_update_available;
 
 /**
  * Settings View module.
@@ -33,6 +35,7 @@ class Settings {
 	 */
 	public function register() {
 		add_action( 'admin_menu', [ $this, 'add_sesamy_settings_page' ] );
+		add_action( 'admin_notices', [ $this, 'sesamy_settings_notices' ] );
 	}
 
 	/**
@@ -43,13 +46,46 @@ class Settings {
 	public function add_sesamy_settings_page() {
 		add_menu_page(
 			'Sesamy Settings',
-			'Sesamy',
+			'Sesamy <span class="update-plugins sesamy-update-badge">1</span>',
 			'manage_options',
 			'sesamy',
 			[ $this, 'admin_page' ],
 			SESAMY_PLUGIN_URL . 'dist/images/sesamy.svg',
 			100
 		);
+	}
+
+	/**
+	 * Display admin notices on the Sesamy settings page.
+	 *
+	 * @return void
+	 */
+	public function sesamy_settings_notices() {
+		$screen = get_current_screen();
+
+		// Only show on sesamy settings page.
+		if ( 'toplevel_page_sesamy' !== $screen->id ) {
+			return;
+		}
+
+		if ( is_update_available() ) {
+			$releases       = get_releases();
+			$latest_version = $releases[0];
+			$latest_tag     = str_replace( 'v', '', $latest_version['tag_name'] );
+			$release_url    = $latest_version['html_url'];
+			$docs_url       = 'https://docs.sesamy.com/products/7KJN7PiwkXdWXks753aJt6/downloading-latest-version-and-installning/4zbFtvfEGEvW6bsvDZRVF2';
+			?>
+			<div class="notice notice-error is-dismissible">
+				<p>
+					<strong>Update Available!</strong> A new version of Sesamy is available. You have version 1.9.0 installed,
+					<a href="<?php echo esc_url( $release_url ); ?>" target="_blank">
+						<strong>update to <?php echo esc_html( $latest_tag ); ?></strong>
+					</a><br />
+					Visit <a href="<?php echo esc_url( $docs_url ); ?>" target="_blank">our documentation</a> for instructions on how to update.
+				</p>
+			</div>
+			<?php
+		}
 	}
 
 	/**

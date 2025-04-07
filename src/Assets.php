@@ -10,6 +10,7 @@ namespace SesamyPlugin;
 use function SesamyPlugin\Helpers\get_enabled_post_types;
 use function SesamyPlugin\Helpers\is_config_valid;
 use function SesamyPlugin\Helpers\get_sesamy_setting;
+use function SesamyPlugin\Helpers\is_update_available;
 
 /**
  * Assets module.
@@ -36,6 +37,7 @@ class Assets {
 	public function register() {
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_scripts' ] );
 		add_action( 'admin_enqueue_scripts', [ $this, 'admin_styles' ] );
+		add_action( 'admin_enqueue_scripts', [ $this, 'update_badge' ] );
 		add_action( 'enqueue_block_editor_assets', [ $this, 'block_editor_scripts' ] );
 
 		add_action( 'wp_enqueue_scripts', [ $this, 'sesamy_scripts' ] );
@@ -69,6 +71,21 @@ class Assets {
 			[],
 			SESAMY_PLUGIN_VERSION
 		);
+	}
+
+	/**
+	 * Update the visibility of the Sesamy update badge in the admin menu.
+	 *
+	 * @return void
+	 */
+	public function update_badge() {
+		if ( is_update_available() ) {
+			$css = '#adminmenu .sesamy-update-badge { display: inline-block; }';
+		} else {
+			$css = '#adminmenu .sesamy-update-badge { display: none; }';
+		}
+
+		wp_add_inline_style( 'admin-menu', $css );
 	}
 
 	/**
