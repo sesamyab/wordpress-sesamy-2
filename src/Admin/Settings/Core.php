@@ -74,8 +74,8 @@ class Core {
 							'enabled_content_types' => [
 								'type' => 'array',
 							],
-							'render_settings'       => [
-								'type' => 'array',
+							'development_mode'      => [
+								'type' => 'boolean',
 							],
 						],
 					],
@@ -106,6 +106,9 @@ class Core {
 					break;
 				case 'enabled_content_types':
 					$sanitized_input[ $key ] = array_map( 'sanitize_text_field', (array) $value );
+					break;
+				case 'development_mode':
+					$sanitized_input[ $key ] = rest_sanitize_boolean( $value );
 					break;
 				default:
 					$sanitized_input[ $key ] = sanitize_text_field( $value );
@@ -242,14 +245,12 @@ class Core {
 		add_settings_field(
 			'development_mode',
 			__( 'Development Mode', 'sesamy' ),
-			[ $admin_settings_view, 'settings_render_checkbox_list' ],
+			[ $admin_settings_view, 'settings_render_checkbox' ],
 			'sesamy',
 			'section_general',
 			[
-				'name'    => 'development_mode',
-				'options' => [
-					'enabled' => 'Enable',
-				],
+				'name'      => 'development_mode',
+				'label_for' => __( 'Enabled', 'sesamy' ),
 			]
 		);
 

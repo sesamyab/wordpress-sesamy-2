@@ -164,9 +164,24 @@ class Settings {
 	}
 
 	/**
-	 * Checkbox field render
+	 * Checkbox field render.
 	 *
-	 * @param array{name: string, options: array<string, string>} $args Arguments of checkbox fields.
+	 * @param array{name: string, label_for: string} $args Arguments of checkbox fields.
+	 *
+	 * @return void
+	 */
+	public function settings_render_checkbox( $args ) {
+		$field_name    = $args['name'];
+		$field_label   = $args['label_for'];
+		$current_value = get_sesamy_setting( $field_name );
+
+		echo '<label><input type="checkbox" name="sesamy_settings[' . esc_attr( $args['name'] ) . ']" value="1" ' . checked( $current_value, true, false ) . '>' . esc_html( $field_label ) . '</label>';
+	}
+
+	/**
+	 * Checkbox list render
+	 *
+	 * @param array{name: string, options: array<string, string>} $args Arguments of checkbox list fields.
 	 *
 	 * @return void
 	 */
