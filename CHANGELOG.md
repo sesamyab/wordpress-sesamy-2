@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.2.0 (2025-04-07)
+
+
+### Features
+
+* release notifaction ([2bfeb66](https://github.com/sesamyab/wordpress-sesamy-2/commit/2bfeb66c65795dbc95c5c65815af0378aa6e9120))
+
 ## 1.1.10 (2025-04-04)
 
 ## 1.1.9 (2025-04-04)
