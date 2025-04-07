@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.2.2 (2025-04-07)
+
+
+### Bug Fixes
+
+* development mode boolean ([fbb84f7](https://github.com/sesamyab/wordpress-sesamy-2/commit/fbb84f78a785c279f291e876648186e75ae07fe1))
+
 ## 1.2.1 (2025-04-07)
 
 ## 1.2.0 (2025-04-07)
