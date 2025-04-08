@@ -1,18 +1,18 @@
 <?php
 /**
- * PluginCore module.
+ * Plugin Core module.
  *
  * @package Sesamy2
  */
 
-namespace SesamyPlugin;
+namespace SesamyPlugin\Core;
 
 /**
- * PluginCore module.
+ * Plugin Core module.
  *
  * @package Sesamy2
  */
-class PluginCore {
+class Plugin {
 
 	/**
 	 * Default setup routine
@@ -20,7 +20,7 @@ class PluginCore {
 	 * @return void
 	 */
 	public function setup() {
-		add_action( 'init', [ $this, 'init' ], apply_filters( 'sesamy_plugin_init_priority', 8 ) );
+		add_action( 'init', [ $this, 'initialize_plugin' ], apply_filters( 'sesamy_plugin_init_priority', 8 ) );
 
 		do_action( 'sesamy_plugin_loaded' );
 	}
@@ -30,17 +30,15 @@ class PluginCore {
 	 *
 	 * @return void
 	 */
-	public function init() {
+	public function initialize_plugin() {
 		do_action( 'sesamy_plugin_init' );
 
 		// Init class interfaces
-		\SesamyPlugin\Admin\Settings\Core::init();
-		\SesamyPlugin\Admin\Settings\Post::init();
-		\SesamyPlugin\Admin\View\Settings::init();
-		\SesamyPlugin\ContentContainer::init();
-		\SesamyPlugin\Meta::init();
-		\SesamyPlugin\Assets::init();
-		\SesamyPlugin\Rest::init();
+		\SesamyPlugin\Admin\Controllers\SettingsController::init();
+		\SesamyPlugin\Core\ContentManager::init();
+		\SesamyPlugin\Models\Meta::init();
+		\SesamyPlugin\Core\Assets::init();
+		\SesamyPlugin\Api\Rest::init();
 	}
 
 	/**
@@ -50,7 +48,7 @@ class PluginCore {
 	 */
 	public function activate() {
 		// First load the init scripts in case any rewrite functionality is being loaded
-		$this->init();
+		$this->initialize_plugin();
 		flush_rewrite_rules();
 	}
 
@@ -63,5 +61,16 @@ class PluginCore {
 	 */
 	public function deactivate() {
 		// Do nothing.
+	}
+
+	/**
+	 * Initialize the Plugin module.
+	 *
+	 * @return self
+	 */
+	public static function init() {
+		$instance = new self();
+		$instance->setup();
+		return $instance;
 	}
 }
