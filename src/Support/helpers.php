@@ -5,7 +5,7 @@
  * @package Sesamy2
  */
 
-namespace SesamyPlugin\Helpers;
+namespace SesamyPlugin\Support\Helpers;
 
 /**
  * Get Sesamy setting.

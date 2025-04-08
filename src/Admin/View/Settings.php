@@ -7,9 +7,9 @@
 
 namespace SesamyPlugin\Admin\View;
 
-use function SesamyPlugin\Helpers\get_releases;
-use function SesamyPlugin\Helpers\get_sesamy_setting;
-use function SesamyPlugin\Helpers\is_update_available;
+use function SesamyPlugin\Support\Helpers\get_releases;
+use function SesamyPlugin\Support\Helpers\get_sesamy_setting;
+use function SesamyPlugin\Support\Helpers\is_update_available;
 
 /**
  * Settings View module.
@@ -64,16 +64,19 @@ class Settings {
 		$screen = get_current_screen();
 
 		// Only show on sesamy settings page.
-		if ( 'toplevel_page_sesamy' !== $screen->id ) {
+		if ( ! $screen || 'toplevel_page_sesamy' !== $screen->id ) {
 			return;
 		}
 
 		if ( is_update_available() ) {
 			$releases       = get_releases();
-			$latest_version = $releases[0];
-			$latest_tag     = str_replace( 'v', '', $latest_version['tag_name'] );
-			$release_url    = $latest_version['html_url'];
-			$docs_url       = 'https://docs.sesamy.com/products/7KJN7PiwkXdWXks753aJt6/downloading-latest-version-and-installning/4zbFtvfEGEvW6bsvDZRVF2';
+			$latest_version = is_array( $releases ) && ! empty( $releases ) ? $releases[0] : null;
+			if ( ! $latest_version ) {
+				return;
+			}
+			$latest_tag  = str_replace( 'v', '', $latest_version['tag_name'] );
+			$release_url = $latest_version['html_url'];
+			$docs_url    = 'https://docs.sesamy.com/products/7KJN7PiwkXdWXks753aJt6/downloading-latest-version-and-installning/4zbFtvfEGEvW6bsvDZRVF2';
 			?>
 			<div class="notice notice-error is-dismissible">
 				<p>

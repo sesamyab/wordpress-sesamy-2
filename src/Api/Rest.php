@@ -5,7 +5,7 @@
  * @package Sesamy2
  */
 
-namespace SesamyPlugin;
+namespace SesamyPlugin\Api;
 
 use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
@@ -17,7 +17,7 @@ use Firebase\JWT\JWT;
  */
 class Rest {
 	/**
-	 * Initialize the Assets module.
+	 * Initialize the Rest module.
 	 *
 	 * @return self
 	 */

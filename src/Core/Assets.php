@@ -5,12 +5,12 @@
  * @package Sesamy2
  */
 
-namespace SesamyPlugin;
+namespace SesamyPlugin\Core;
 
-use function SesamyPlugin\Helpers\get_enabled_post_types;
-use function SesamyPlugin\Helpers\is_config_valid;
-use function SesamyPlugin\Helpers\get_sesamy_setting;
-use function SesamyPlugin\Helpers\is_update_available;
+use function SesamyPlugin\Support\Helpers\get_enabled_post_types;
+use function SesamyPlugin\Support\Helpers\is_config_valid;
+use function SesamyPlugin\Support\Helpers\get_sesamy_setting;
+use function SesamyPlugin\Support\Helpers\is_update_available;
 
 /**
  * Assets module.
