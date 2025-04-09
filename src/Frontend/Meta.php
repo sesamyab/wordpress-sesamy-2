@@ -5,10 +5,10 @@
  * @package Sesamy2
  */
 
-namespace SesamyPlugin\Models;
+namespace SesamyPlugin\Frontend;
 
-use function SesamyPlugin\Support\Helpers\get_enabled_post_types;
-use function SesamyPlugin\Support\Helpers\is_config_valid;
+use function SesamyPlugin\Helpers\get_enabled_post_types;
+use function SesamyPlugin\Helpers\is_config_valid;
 
 /**
  * Meta module.
@@ -17,7 +17,7 @@ use function SesamyPlugin\Support\Helpers\is_config_valid;
  */
 class Meta {
 	/**
-	 * Initialize the Meta module.
+	 * Initialize the Assets module.
 	 *
 	 * @return self
 	 */
