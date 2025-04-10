@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [commit-and-tag-version](https://github.com/absolute-version/commit-and-tag-version) for commit guidelines.
 
+## 1.2.5 (2025-04-10)
+
+
+### Bug Fixes
+
+* file structure review notes ([e37510e](https://github.com/sesamyab/wordpress-sesamy-2/commit/e37510ea4579fef45a85afc0e9f4c3c5df820853))
+
 ## 1.2.4 (2025-04-10)
 
 ## 1.2.3 (2025-04-08)
