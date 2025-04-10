@@ -50,12 +50,11 @@ if ( ! file_exists( SESAMY_PLUGIN_PATH . 'vendor/autoload.php' ) ) {
 
 require_once SESAMY_PLUGIN_PATH . 'vendor/autoload.php';
 
-// Get core plugin class for activation/deactivation hooks
-$plugin_core = new \SesamyPlugin\Core\Plugin();
+$plugin_core = new \SesamyPlugin\PluginCore();
 
 // Activation/Deactivation.
 register_activation_hook( __FILE__, [ $plugin_core, 'activate' ] );
 register_deactivation_hook( __FILE__, [ $plugin_core, 'deactivate' ] );
 
-// Bootstrap using the new Plugin structure
-\SesamyPlugin\Plugin::init();
+// Bootstrap.
+$plugin_core->setup();

@@ -24,7 +24,8 @@
       "SesamyPlugin\\": "src/"
     },
     "files": [
-      "src/Support/helpers.php"
+      "src/Support/helpers.php",
+      "src/Support/releases.php"
     ]
   },
   "extra": {

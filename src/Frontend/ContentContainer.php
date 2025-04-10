@@ -1,24 +1,24 @@
 <?php
 /**
- * ContentManager module.
+ * ContentContainer module.
  *
  * @package Sesamy2
  */
 
-namespace SesamyPlugin\Core;
+namespace SesamyPlugin\Frontend;
 
-use function SesamyPlugin\Support\Helpers\get_enabled_post_types;
-use function SesamyPlugin\Support\Helpers\get_sesamy_setting;
-use function SesamyPlugin\Support\Helpers\is_config_valid;
+use function SesamyPlugin\Helpers\get_enabled_post_types;
+use function SesamyPlugin\Helpers\get_sesamy_setting;
+use function SesamyPlugin\Helpers\is_config_valid;
 
 /**
- * ContentManager module.
+ * ContentContainer module.
  *
  * @package Sesamy2
  */
-class ContentManager {
+class ContentContainer {
 	/**
-	 * Initialize the ContentManager module.
+	 * Initialize the Assets module.
 	 *
 	 * @return self
 	 */
@@ -79,10 +79,11 @@ class ContentManager {
 
 		$html  = '<sesamy-article item-src="' . esc_url( $item_src ) . '" publisher-content-id="' . esc_attr( (string) $post->ID ) . '">';
 		$html .= '<sesamy-content-container lock-mode="' . esc_attr( $lock_mode ) . '">';
-		$html .= '<div slot="preview">' . wp_kses_post( $preview ) . '</div>';
+		$html .= '<div slot="preview">' . $preview . '</div>';
 		if ( 'embed' === $lock_mode ) {
-			$html .= '<div slot="content">' . wp_kses_post( $content ) . '</div>';
+			$html .= '<div slot="content">' . $content . '</div>';
 		} elseif ( 'encode' === $lock_mode ) {
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 			$html .= '<div slot="content" style="display:none;">' . base64_encode( $content ) . '</div>';
 		}
 		$html .= '</sesamy-content-container>';

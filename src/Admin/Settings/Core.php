@@ -126,19 +126,19 @@ class Core {
 	 * @return void
 	 */
 	public function add_sesamy_setting_fields() {
-		$admin_settings_view = new \SesamyPlugin\Admin\View\Settings();
+		$settings_page_view = new \SesamyPlugin\Admin\View\SettingsPage();
 
 		add_settings_section(
 			'section_general',
 			'',
-			[ $admin_settings_view, 'section_general_callback' ],
+			[ $settings_page_view, 'section_general_callback' ],
 			'sesamy'
 		);
 
 		add_settings_field(
 			'client_id',
 			__( 'Client ID', 'sesamy' ),
-			[ $admin_settings_view, 'settings_render_textfield' ],
+			[ $settings_page_view, 'settings_render_textfield' ],
 			'sesamy',
 			'section_general',
 			[
@@ -151,7 +151,7 @@ class Core {
 		// add_settings_field(
 		// 'client_secret',
 		// __( 'Client Secret', 'sesamy' ),
-		// [ $admin_settings_view, 'settings_render_textfield' ],
+		// [ $settings_page_view, 'settings_render_textfield' ],
 		// 'sesamy',
 		// 'section_general',
 		// [
@@ -163,7 +163,7 @@ class Core {
 		add_settings_field(
 			'default_currency',
 			__( 'Default Currency', 'sesamy' ),
-			[ $admin_settings_view, 'settings_render_selectfield' ],
+			[ $settings_page_view, 'settings_render_selectfield' ],
 			'sesamy',
 			'section_general',
 			[
@@ -181,7 +181,7 @@ class Core {
 		add_settings_field(
 			'default_price',
 			__( 'Default Article Price', 'sesamy' ),
-			[ $admin_settings_view, 'settings_render_textfield' ],
+			[ $settings_page_view, 'settings_render_textfield' ],
 			'sesamy',
 			'section_general',
 			[
@@ -194,7 +194,7 @@ class Core {
 		add_settings_field(
 			'default_paywall',
 			__( 'Default Paywall', 'sesamy' ),
-			[ $admin_settings_view, 'settings_render_textfield' ],
+			[ $settings_page_view, 'settings_render_textfield' ],
 			'sesamy',
 			'section_general',
 			[
@@ -206,7 +206,7 @@ class Core {
 		add_settings_field(
 			'default_pass',
 			__( 'Default Pass', 'sesamy' ),
-			[ $admin_settings_view, 'settings_render_textfield' ],
+			[ $settings_page_view, 'settings_render_textfield' ],
 			'sesamy',
 			'section_general',
 			[
@@ -218,7 +218,7 @@ class Core {
 		add_settings_field(
 			'lock_mode',
 			__( 'Lock Mode', 'sesamy' ),
-			[ $admin_settings_view, 'settings_render_selectfield' ],
+			[ $settings_page_view, 'settings_render_selectfield' ],
 			'sesamy',
 			'section_general',
 			[
@@ -234,7 +234,7 @@ class Core {
 		add_settings_field(
 			'enabled_content_types',
 			__( 'Content Types', 'sesamy' ),
-			[ $admin_settings_view, 'settings_render_posttype_list' ],
+			[ $settings_page_view, 'settings_render_posttype_list' ],
 			'sesamy',
 			'section_general',
 			[
@@ -245,7 +245,7 @@ class Core {
 		add_settings_field(
 			'development_mode',
 			__( 'Development Mode', 'sesamy' ),
-			[ $admin_settings_view, 'settings_render_checkbox' ],
+			[ $settings_page_view, 'settings_render_checkbox' ],
 			'sesamy',
 			'section_general',
 			[
@@ -258,7 +258,7 @@ class Core {
 		// add_settings_field(
 		// 'render_settings',
 		// __( 'Render', 'sesamy' ),
-		// [ $admin_settings_view, 'settings_render_checkbox_list' ],
+		// [ $settings_page_view, 'settings_render_checkbox_list' ],
 		// 'sesamy',
 		// 'section_general',
 		// [

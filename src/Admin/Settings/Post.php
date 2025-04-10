@@ -7,8 +7,8 @@
 
 namespace SesamyPlugin\Admin\Settings;
 
-use function SesamyPlugin\Support\Helpers\get_enabled_post_types;
-use function SesamyPlugin\Support\Helpers\is_config_valid;
+use function SesamyPlugin\Helpers\get_enabled_post_types;
+use function SesamyPlugin\Helpers\is_config_valid;
 
 /**
  * Post Settings module.
