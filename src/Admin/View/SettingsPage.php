@@ -16,7 +16,7 @@ use function SesamyPlugin\Helpers\get_sesamy_setting;
  */
 class SettingsPage {
 	/**
-	 * Initialize the Assets module.
+	 * Initialize the module.
 	 *
 	 * @return self
 	 */

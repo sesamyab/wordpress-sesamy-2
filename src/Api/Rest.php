@@ -17,7 +17,7 @@ use Firebase\JWT\JWT;
  */
 class Rest {
 	/**
-	 * Initialize the Assets module.
+	 * Initialize the module.
 	 *
 	 * @return self
 	 */

@@ -18,7 +18,7 @@ use function SesamyPlugin\Helpers\is_config_valid;
  */
 class ContentContainer {
 	/**
-	 * Initialize the Assets module.
+	 * Initialize the module.
 	 *
 	 * @return self
 	 */
@@ -79,9 +79,9 @@ class ContentContainer {
 
 		$html  = '<sesamy-article item-src="' . esc_url( $item_src ) . '" publisher-content-id="' . esc_attr( (string) $post->ID ) . '">';
 		$html .= '<sesamy-content-container lock-mode="' . esc_attr( $lock_mode ) . '">';
-		$html .= '<div slot="preview">' . $preview . '</div>';
+		$html .= '<div slot="preview">' . wp_kses_post( $preview ) . '</div>';
 		if ( 'embed' === $lock_mode ) {
-			$html .= '<div slot="content">' . $content . '</div>';
+			$html .= '<div slot="content">' . wp_kses_post( $content ) . '</div>';
 		} elseif ( 'encode' === $lock_mode ) {
 			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
 			$html .= '<div slot="content" style="display:none;">' . base64_encode( $content ) . '</div>';

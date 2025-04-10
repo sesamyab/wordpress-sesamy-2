@@ -17,7 +17,7 @@ use function SesamyPlugin\Helpers\is_config_valid;
  */
 class Post {
 	/**
-	 * Initialize the Assets module.
+	 * Initialize the module.
 	 *
 	 * @return self
 	 */

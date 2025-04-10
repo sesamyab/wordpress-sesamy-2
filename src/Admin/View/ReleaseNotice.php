@@ -17,7 +17,7 @@ use function SesamyPlugin\Releases\is_update_available;
  */
 class ReleaseNotice {
 	/**
-	 * Initialize the Assets module.
+	 * Initialize the module.
 	 *
 	 * @return self
 	 */

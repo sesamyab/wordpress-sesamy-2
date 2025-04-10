@@ -14,7 +14,7 @@ namespace SesamyPlugin\Admin\Settings;
  */
 class Core {
 	/**
-	 * Initialize the Assets module.
+	 * Initialize the module.
 	 *
 	 * @return self
 	 */
