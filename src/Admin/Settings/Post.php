@@ -116,6 +116,17 @@ class Post {
 						'auth_callback' => '__return_true',
 					]
 				);
+
+				register_post_meta(
+					$post_type,
+					'_sesamy_locked_content_redirect_url',
+					[
+						'show_in_rest'  => true,
+						'single'        => true,
+						'type'          => 'string',
+						'auth_callback' => '__return_true',
+					]
+				);
 			}
 		}
 	}
