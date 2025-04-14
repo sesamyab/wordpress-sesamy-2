@@ -35,12 +35,18 @@ class Post {
 	public function register() {
 		if ( is_config_valid() ) {
 			add_action( 'init', [ $this, 'register_slot_fill_meta' ] );
-			add_filter( 'manage_post_posts_columns', [ $this, 'add_custom_column' ] );
-			add_action( 'manage_post_posts_custom_column', [ $this, 'populate_custom_column' ], 10, 2 );
 			add_action( 'quick_edit_custom_box', [ $this, 'add_quick_edit_field' ], 10, 2 );
 			add_action( 'save_post', [ $this, 'save_quick_edit_data' ], 10, 1 );
 			add_action( 'bulk_edit_custom_box', [ $this, 'add_bulk_edit_field' ], 10, 2 );
 			add_action( 'save_post', [ $this, 'save_bulk_edit_data' ], 10, 1 );
+
+			$enabled_post_types = get_enabled_post_types();
+			if ( $enabled_post_types ) {
+				foreach ( $enabled_post_types as $post_type ) {
+					add_filter( 'manage_' . $post_type . '_posts_columns', [ $this, 'add_custom_column' ] );
+					add_action( 'manage_' . $post_type . '_posts_custom_column', [ $this, 'populate_custom_column' ], 10, 2 );
+				}
+			}
 		}
 	}
 
