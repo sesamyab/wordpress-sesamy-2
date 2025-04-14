@@ -26,6 +26,7 @@ const SesamySettingsPanel = () => {
 		_sesamy_enable_single_purchase,
 		_sesamy_price,
 		_sesamy_custom_paywall_url,
+		_sesamy_locked_content_redirect_url,
 	} = meta;
 
 	const [displayPrice, setDisplayPrice] = useState(_sesamy_price ? _sesamy_price.toString() : '');
@@ -148,6 +149,23 @@ const SesamySettingsPanel = () => {
 								'Optional, default Paywall URL from your config will be used if empty.',
 								'sesamy',
 							)}
+						/>
+					</PanelRow>
+					<PanelRow>
+						<TextControl
+							__nextHasNoMarginBottom
+							label={__('Locked content redirect URL', 'sesamy')}
+							value={_sesamy_locked_content_redirect_url}
+							onChange={(value) => {
+								editPost({
+									meta: { ...meta, _sesamy_locked_content_redirect_url: value },
+								});
+							}}
+							help={__(
+								'Optional, specify URL that the user should be redirected to if they dont have access.',
+								'sesamy',
+							)}
+							type="url"
 						/>
 					</PanelRow>
 				</>

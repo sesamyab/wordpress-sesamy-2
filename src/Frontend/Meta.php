@@ -74,6 +74,11 @@ class Meta {
 						echo '<meta name="sesamy:price" content="' . esc_attr( $price ) . '">';
 					}
 				}
+
+				$locked_content_redirect_url = get_post_meta( $post->ID, '_sesamy_locked_content_redirect_url', true );
+				if ( ! empty( $locked_content_redirect_url ) ) {
+					echo '<meta name="sesamy:locked-content-redirect-url" content="' . esc_attr( $locked_content_redirect_url ) . '">';
+				}
 			}
 		}
 	}
