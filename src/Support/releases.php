@@ -78,6 +78,30 @@ function get_releases() {
 }
 
 /**
+ * Fetches the latest release from the GitHub releases.
+ *
+ * This function retrieves the latest non-prerelease, non-draft release from the GitHub API.
+ *
+ * @return array|false The latest release array if successful, or false on failure.
+ */
+function get_latest_release() {
+	$releases = get_releases();
+	if ( empty( $releases ) || ! is_array( $releases ) ) {
+		return false;
+	}
+
+	foreach ( $releases as $release ) {
+		if ( empty( $release['prerelease'] ) && empty( $release['draft'] ) ) {
+			return $release;
+		}
+	}
+
+	return false;
+}
+
+
+
+/**
  * Check if an update is available for the plugin.
  *
  * This function fetches the latest release information from the GitHub repository
@@ -86,13 +110,12 @@ function get_releases() {
  * @return bool True if an update is available, false otherwise.
  */
 function is_update_available() {
-	$releases = get_releases();
-	if ( empty( $releases ) || ! is_array( $releases ) ) {
+	$latest_release = get_latest_release();
+	if ( empty( $latest_release ) || ! is_array( $latest_release ) ) {
 		return false;
 	}
-
-	$latest_release = str_replace( 'v', '', $releases[0]['name'] );
-	$diff           = diff_sem_ver( SESAMY_PLUGIN_VERSION, $latest_release );
+	$latest_tag = str_replace( 'v', '', $latest_release['tag_name'] );
+	$diff       = diff_sem_ver( SESAMY_PLUGIN_VERSION, $latest_tag );
 
 	return in_array( $diff, [ 'major', 'minor', 'patch' ], true );
 }
