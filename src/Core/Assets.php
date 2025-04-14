@@ -104,7 +104,7 @@ class Assets {
 
 		wp_enqueue_script_module(
 			'sesamy_bundle',
-			$sesamy_scripts_host . '/s/' . $client_id . '/bundle',
+			$sesamy_scripts_host . '/s/' . $client_id . '/bundle' . ( isset( $dev_mode ) ? '/latest' : '' ),
 			[],
 			SESAMY_PLUGIN_VERSION
 		);
