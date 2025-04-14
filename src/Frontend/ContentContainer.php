@@ -102,16 +102,19 @@ class ContentContainer {
 	 */
 	public function render_paywall() {
 		$post_id = get_the_ID();
-		if ( $post_id ) {
-			$custom_settings_url = get_post_meta( $post_id, '_sesamy_custom_paywall_url', true );
-		} else {
-			$custom_settings_url = '';
-		}
-		$default_settings_url = get_sesamy_setting( 'default_paywall' );
-		$settings_url         = ! empty( $custom_settings_url ) ? $custom_settings_url : $default_settings_url;
-		if ( empty( $settings_url ) ) {
+		if ( ! $post_id ) {
 			return '';
 		}
+
+		$custom_settings_url         = get_post_meta( $post_id, '_sesamy_custom_paywall_url', true );
+		$locked_content_redirect_url = get_post_meta( $post_id, '_sesamy_locked_content_redirect_url', true );
+		$default_settings_url        = get_sesamy_setting( 'default_paywall' );
+		$settings_url                = ! empty( $custom_settings_url ) ? $custom_settings_url : $default_settings_url;
+
+		if ( empty( $settings_url ) || ! empty( $locked_content_redirect_url ) ) {
+			return '';
+		}
+
 		return '<sesamy-paywall settings-url="' . esc_url( $settings_url ) . '" />';
 	}
 
