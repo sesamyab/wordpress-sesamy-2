@@ -7,7 +7,7 @@
 
 namespace SesamyPlugin\Admin\View;
 
-use function SesamyPlugin\Releases\get_releases;
+use function SesamyPlugin\Releases\get_latest_release;
 use function SesamyPlugin\Releases\is_update_available;
 
 /**
@@ -51,12 +51,13 @@ class ReleaseNotice {
 		}
 
 		if ( is_update_available() ) {
-			$releases = get_releases();
-
-			$latest_version = is_array( $releases ) && ! empty( $releases ) ? $releases[0] : null;
-			$latest_tag     = str_replace( 'v', '', $latest_version['tag_name'] );
-			$release_url    = $latest_version['html_url'];
-			$docs_url       = 'https://docs.sesamy.com/products/7KJN7PiwkXdWXks753aJt6/downloading-latest-version-and-installning/4zbFtvfEGEvW6bsvDZRVF2';
+			$latest_version = get_latest_release();
+			if ( ! $latest_version || empty( $latest_version['tag_name'] ) || empty( $latest_version['html_url'] ) ) {
+				return;
+			}
+			$latest_tag  = str_replace( 'v', '', $latest_version['tag_name'] );
+			$release_url = $latest_version['html_url'];
+			$docs_url    = 'https://docs.sesamy.com/products/7KJN7PiwkXdWXks753aJt6/downloading-latest-version-and-installning/4zbFtvfEGEvW6bsvDZRVF2';
 			?>
 			<div class="notice notice-error is-dismissible">
 				<p>
