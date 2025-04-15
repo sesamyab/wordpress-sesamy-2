@@ -36,9 +36,11 @@ class Post {
 		if ( is_config_valid() ) {
 			add_action( 'init', [ $this, 'register_slot_fill_meta' ] );
 			add_action( 'quick_edit_custom_box', [ $this, 'add_quick_edit_field' ], 10, 2 );
-			add_action( 'save_post', [ $this, 'save_quick_edit_data' ], 10, 1 );
+			add_action( 'save_post', [ $this, 'save_quick_edit_data' ] );
 			add_action( 'bulk_edit_custom_box', [ $this, 'add_bulk_edit_field' ], 10, 2 );
-			add_action( 'save_post', [ $this, 'save_bulk_edit_data' ], 10, 1 );
+			add_action( 'save_post', [ $this, 'save_bulk_edit_data' ] );
+			add_action( 'add_meta_boxes', [ $this, 'sesamy_meta_box' ] );
+			add_action( 'save_post', [ $this, 'save_meta_box_postdata' ] );
 
 			$enabled_post_types = get_enabled_post_types();
 			if ( $enabled_post_types ) {
@@ -271,5 +273,63 @@ class Post {
 			$single_purchase = sanitize_text_field( wp_unslash( $_GET['sesamy_single_purchase'] ) ) === '1';
 			update_post_meta( $post_id, '_sesamy_enable_single_purchase', $single_purchase );
 		}
+	}
+
+	/**
+	 * Adds a meta box to the legacy classic post editor.
+	 *
+	 * @return void
+	 */
+	public function sesamy_meta_box() {
+		if ( ! is_config_valid() ) {
+			return;
+		}
+
+		$meta_box_view = new \SesamyPlugin\Admin\View\MetaBox();
+		$screens       = get_enabled_post_types();
+
+		add_meta_box(
+			'sesamy_meta_box',
+			'Sesamy',
+			[ $meta_box_view, 'sesamy_meta_box_html' ],
+			$screens,
+			'side',
+			'high',
+			[
+				'__back_compat_meta_box' => true,
+			]
+		);
+	}
+
+	/**
+	 * Saves the meta box data for the post.
+	 *
+	 * @param int $post_id The ID of the post being saved.
+	 * @return void
+	 */
+	public function save_meta_box_postdata( $post_id ) {
+		// Check if this is an autosave or a revision.
+		if ( ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+			return;
+		}
+		// if our nonce isn't there, or we can't verify it, bail.
+		if ( ! isset( $_POST['post_meta_box_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['post_meta_box_nonce'] ) ), 'sesamy_post_meta_box_nonce' ) ) {
+			return;
+		}
+		// Check if the current user has permission to edit the post.
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+
+		$is_locked = isset( $_POST['sesamy_meta_box_locked'] ) ? 1 : 0;
+		update_post_meta( $post_id, '_sesamy_locked', $is_locked );
+		$single_purchase_enabled = isset( $_POST['sesamy_meta_box_enable_single_purchase'] ) ? 1 : 0;
+		update_post_meta( $post_id, '_sesamy_enable_single_purchase', $single_purchase_enabled );
+		$price = isset( $_POST['sesamy_meta_box_price'] ) ? sanitize_text_field( wp_unslash( $_POST['sesamy_meta_box_price'] ) ) : '';
+		update_post_meta( $post_id, '_sesamy_price', $price );
+		$custom_paywall_url = isset( $_POST['sesamy_meta_box_custom_paywall_url'] ) ? sanitize_text_field( wp_unslash( $_POST['sesamy_meta_box_custom_paywall_url'] ) ) : '';
+		update_post_meta( $post_id, '_sesamy_custom_paywall_url', $custom_paywall_url );
+		$locked_content_redirect_url = isset( $_POST['sesamy_meta_box_locked_content_redirect_url'] ) ? sanitize_text_field( wp_unslash( $_POST['sesamy_meta_box_locked_content_redirect_url'] ) ) : '';
+		update_post_meta( $post_id, '_sesamy_locked_content_redirect_url', $locked_content_redirect_url );
 	}
 }
