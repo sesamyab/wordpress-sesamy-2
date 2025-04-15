@@ -33,9 +33,19 @@ class Meta {
 	 * @return void
 	 */
 	public function register() {
+		add_action( 'wp_head', [ $this, 'plugin_comment' ] );
 		if ( is_config_valid() ) {
 			add_action( 'wp_head', [ $this, 'add_meta_tags' ] );
 		}
+	}
+
+	/**
+	 * Outputs a comment in the HTML source indicating the plugin version.
+	 *
+	 * @return void
+	 */
+	public function plugin_comment() {
+		echo '<!-- Sesamy WordPress plugin v' . esc_html( SESAMY_PLUGIN_VERSION ) . ' -->';
 	}
 
 	/**
