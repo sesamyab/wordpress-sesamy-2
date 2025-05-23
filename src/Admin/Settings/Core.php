@@ -7,6 +7,8 @@
 
 namespace SesamyPlugin\Admin\Settings;
 
+use function SesamyPlugin\Helpers\get_enabled_post_types;
+
 /**
  * Core Settings module.
  *
@@ -31,6 +33,7 @@ class Core {
 	 */
 	public function register() {
 		add_action( 'init', [ $this, 'register_sesamy_settings' ] );
+		add_action( 'init', [ $this, 'check_post_types_support' ] );
 		add_action( 'admin_init', [ $this, 'add_sesamy_setting_fields' ] );
 	}
 
@@ -83,6 +86,23 @@ class Core {
 				'sanitize_callback' => [ $this, 'sanitize_sesamy_settings' ],
 			]
 		);
+	}
+
+	/**
+	 * Ensure enabled post types support custom fields.
+	 *
+	 * @return void
+	 */
+	public function check_post_types_support() {
+		$enabled_post_types = get_enabled_post_types();
+		if ( $enabled_post_types ) {
+			foreach ( $enabled_post_types as $post_type ) {
+				$supports = get_all_post_type_supports( $post_type );
+				if ( ! isset( $supports['custom-fields'] ) ) {
+					add_post_type_support( $post_type, 'custom-fields' );
+				}
+			}
+		}
 	}
 
 	/**
