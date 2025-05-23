@@ -98,7 +98,7 @@ class Core {
 		if ( $enabled_post_types ) {
 			foreach ( $enabled_post_types as $post_type ) {
 				$supports = get_all_post_type_supports( $post_type );
-				if ( ! in_array( 'custom-fields', $supports, true ) ) {
+				if ( ! isset( $supports['custom-fields'] ) ) {
 					add_post_type_support( $post_type, 'custom-fields' );
 				}
 			}
