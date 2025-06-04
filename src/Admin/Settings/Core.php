@@ -191,6 +191,9 @@ class Core {
 				'label_for' => 'default_currency',
 				'options'   => [
 					''    => 'Select',
+					'DKK' => 'DKK',
+					'GBP' => 'GBP',
+					'USD' => 'USD',
 					'SEK' => 'SEK',
 					'EUR' => 'EUR',
 					'NOK' => 'NOK',
