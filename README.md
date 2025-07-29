@@ -49,3 +49,80 @@ _(Alternatively, experienced users can clone the repository into their `/wp-cont
 1.  After activating the plugin, navigate to the **Sesamy** settings page in your WordPress admin menu.
 2.  Fill out the required settings
 3.  Click **Save Changes**.
+
+---
+
+## Development
+
+### Running Tests
+
+This plugin includes PHPUnit tests to ensure code quality and functionality.
+
+#### Prerequisites
+
+- PHP 7.2 or higher
+- Composer
+
+#### Setup
+
+1. Install test dependencies:
+
+   ```bash
+   composer install
+   ```
+
+2. Run the test suite:
+
+   ```bash
+   vendor/bin/phpunit
+   ```
+
+   Or run with detailed output:
+
+   ```bash
+   vendor/bin/phpunit --testdox --colors=always
+   ```
+
+#### Using npm/yarn Scripts
+
+For convenience, you can also use the npm/yarn scripts:
+
+```bash
+# Run PHP tests
+yarn test:php
+# or
+npm run test:php
+
+# Run PHP tests with detailed output
+yarn test:php:watch
+# or
+npm run test:php:watch
+
+# Run JavaScript tests (Jest)
+yarn test
+# or
+npm run test
+```
+
+#### VS Code Integration
+
+If you're using VS Code, you can install the "PHPUnit Test Explorer" extension to run and debug tests directly from the editor.
+
+The project includes:
+
+- `phpunit.xml` configuration file
+- VS Code task for running tests (`Run PHPUnit tests`)
+- WP_Mock for mocking WordPress functions
+
+#### Test Structure
+
+Tests are located in the `tests/` directory and follow the same namespace structure as the source code:
+
+- `tests/src/Frontend/ContentContainerTest.php` - Tests for content container functionality
+
+The test structure mirrors the source code organization:
+
+- `tests/src/` - PHP backend tests (mirrors `src/` directory)
+- `tests/frontend/` - JavaScript/browser tests (for future frontend tests)
+
+---
