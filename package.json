@@ -10,6 +10,8 @@
     "lint-js": "10up-toolkit lint-js",
     "lint-style": "10up-toolkit lint-style",
     "test": "10up-toolkit test-unit-jest --passWithNoTests",
+    "test:php": "vendor/bin/phpunit",
+    "test:php:watch": "vendor/bin/phpunit --testdox --colors=always",
     "clean-dist": "rm -rf ./dist",
     "prepare": "husky",
     "update-plugin-version": "node update-plugin-version.js",
@@ -19,11 +21,12 @@
     "node": ">=18.0.0"
   },
   "devDependencies": {
+    "10up-toolkit": "6.4.1",
     "@commitlint/cli": "19.8.0",
     "@commitlint/config-conventional": "19.8.0",
-    "10up-toolkit": "6.4.1",
     "commit-and-tag-version": "12.5.1",
     "husky": "9.1.7",
+    "jest-environment-jsdom": "^29.7.0",
     "lint-staged": "15.5.0"
   },
   "dependencies": {
@@ -46,5 +49,6 @@
     "scripts": {
       "precommit": "npm run update-plugin-version && git add sesamy2.php"
     }
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

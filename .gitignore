@@ -4,6 +4,9 @@ vendor
 phpunit.xml
 cache
 
+# Testing
+.phpunit.result.cache
+
 # Project Files
 dist
 sesamy-wordpress.zip

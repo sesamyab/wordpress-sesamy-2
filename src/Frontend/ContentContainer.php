@@ -71,9 +71,15 @@ class ContentContainer {
 	 */
 	public function process_content( $post, $content ) {
 		$is_locked = get_post_meta( $post->ID, '_sesamy_locked', true );
-		$lock_mode = get_sesamy_setting( 'lock_mode' );
-		$preview   = apply_filters( 'sesamy_paywall_preview', static::extract_preview( $post ) );
-		$paywall   = apply_filters( 'sesamy_paywall', static::render_paywall() );
+		// If not locked, always use 'embed' lock mode
+		// Check if the value indicates locked content (truthy and not '0')
+		if ( empty( $is_locked ) || '0' === $is_locked ) {
+			$lock_mode = 'embed';
+		} else {
+			$lock_mode = get_sesamy_setting( 'lock_mode' );
+		}
+		$preview = apply_filters( 'sesamy_paywall_preview', static::extract_preview( $post ) );
+		$paywall = apply_filters( 'sesamy_paywall', static::render_paywall() );
 
 		$item_src = get_permalink( $post->ID ) ? (string) get_permalink( $post->ID ) : '';
 
