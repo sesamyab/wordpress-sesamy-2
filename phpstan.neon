@@ -25,3 +25,5 @@ parameters:
 		# These are annoying issues where PHPStan isn't picking up the type correctly. We can fix these once we get real PHP generics.
 		- '#^Parameter \#3 \$deps of function wp_enqueue_script expects array<string>, array<string>\|string given\.#'
 		- '#^Parameter \#3 \$deps of function wp_register_style expects array<string>, array<string>\|string given\.#'
+		# Ignore strict comparison issues with get_post_meta return values
+		- '#^Strict comparison using === between .* and mixed.* will always evaluate to false\.$#'

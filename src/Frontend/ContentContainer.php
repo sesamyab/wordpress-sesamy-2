@@ -72,7 +72,8 @@ class ContentContainer {
 	public function process_content( $post, $content ) {
 		$is_locked = get_post_meta( $post->ID, '_sesamy_locked', true );
 		// If not locked, always use 'embed' lock mode
-		if ( empty( $is_locked ) || '0' === $is_locked || false === $is_locked ) {
+		// Check if the value indicates locked content (truthy and not '0')
+		if ( empty( $is_locked ) || '0' === $is_locked ) {
 			$lock_mode = 'embed';
 		} else {
 			$lock_mode = get_sesamy_setting( 'lock_mode' );
