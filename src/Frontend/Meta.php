@@ -72,7 +72,9 @@ class Meta {
 		if ( is_singular() ) {
 			$is_locked    = (bool) ( get_post_meta( $post->ID, '_sesamy_locked', true ) ?? false );
 			$access_level = $is_locked ? get_post_meta( $post->ID, '_sesamy_access_level', true ) : 'public';
-			echo '<meta name="sesamy:accessLevel" content="' . esc_attr( $access_level ) . '">';
+			if ( ! empty( $access_level ) ) {
+				echo '<meta name="sesamy:accessLevel" content="' . esc_attr( $access_level ) . '">';
+			}
 
 			$single_purchase = (bool) ( get_post_meta( $post->ID, '_sesamy_enable_single_purchase', true ) ?? false );
 			if ( $single_purchase ) {
