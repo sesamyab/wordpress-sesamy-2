@@ -41,6 +41,7 @@ class PluginCore {
 		\SesamyPlugin\Api\Rest::init();
 		\SesamyPlugin\Core\Assets::init();
 		\SesamyPlugin\Frontend\ContentContainer::init();
+		\SesamyPlugin\Frontend\Login::init();
 		\SesamyPlugin\Frontend\Meta::init();
 	}
 
