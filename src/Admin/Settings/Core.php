@@ -8,6 +8,7 @@
 namespace SesamyPlugin\Admin\Settings;
 
 use function SesamyPlugin\Helpers\get_enabled_post_types;
+use function SesamyPlugin\Helpers\is_sesamy_connected;
 
 /**
  * Core Settings module.
@@ -53,12 +54,6 @@ class Core {
 					'schema' => [
 						'type'       => 'object',
 						'properties' => [
-							'client_id'             => [
-								'type' => 'string',
-							],
-							'client_secret'         => [
-								'type' => 'string',
-							],
 							'default_currency'      => [
 								'type' => 'string',
 							],
@@ -146,6 +141,13 @@ class Core {
 	 * @return void
 	 */
 	public function add_sesamy_setting_fields() {
+		// Settings UI is only meaningful once the publisher has linked their
+		// Sesamy account — the paywall list and lock behaviour both depend on
+		// the connected client.
+		if ( ! is_sesamy_connected() ) {
+			return;
+		}
+
 		$settings_page_view = new \SesamyPlugin\Admin\View\SettingsPage();
 
 		add_settings_section(
@@ -156,85 +158,13 @@ class Core {
 		);
 
 		add_settings_field(
-			'client_id',
-			__( 'Client ID', 'sesamy' ),
-			[ $settings_page_view, 'settings_render_textfield' ],
+			'enabled_content_types',
+			__( 'Content Types', 'sesamy' ),
+			[ $settings_page_view, 'settings_render_posttype_list' ],
 			'sesamy',
 			'section_general',
 			[
-				'name'      => 'client_id',
-				'label_for' => 'client_id',
-			]
-		);
-
-		// TODO: Add client secret when needed
-		// add_settings_field(
-		// 'client_secret',
-		// __( 'Client Secret', 'sesamy' ),
-		// [ $settings_page_view, 'settings_render_textfield' ],
-		// 'sesamy',
-		// 'section_general',
-		// [
-		// 'name'      => 'client_secret',
-		// 'label_for' => 'client_secret',
-		// ]
-		// );
-
-		add_settings_field(
-			'default_currency',
-			__( 'Default Currency', 'sesamy' ),
-			[ $settings_page_view, 'settings_render_selectfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'      => 'default_currency',
-				'label_for' => 'default_currency',
-				'options'   => [
-					''    => 'Select',
-					'DKK' => 'DKK',
-					'GBP' => 'GBP',
-					'USD' => 'USD',
-					'SEK' => 'SEK',
-					'EUR' => 'EUR',
-					'NOK' => 'NOK',
-				],
-			]
-		);
-
-		add_settings_field(
-			'default_price',
-			__( 'Default Article Price', 'sesamy' ),
-			[ $settings_page_view, 'settings_render_textfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'        => 'default_price',
-				'label_for'   => 'default_price',
-				'description' => __( 'The default single purchase price for an article.', 'sesamy' ),
-			]
-		);
-
-		add_settings_field(
-			'default_paywall',
-			__( 'Default Paywall', 'sesamy' ),
-			[ $settings_page_view, 'settings_render_textfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'      => 'default_paywall',
-				'label_for' => 'default_paywall',
-			]
-		);
-
-		add_settings_field(
-			'default_pass',
-			__( 'Default Pass', 'sesamy' ),
-			[ $settings_page_view, 'settings_render_textfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'      => 'default_pass',
-				'label_for' => 'default_pass',
+				'name' => 'enabled_content_types',
 			]
 		);
 
@@ -255,43 +185,15 @@ class Core {
 		);
 
 		add_settings_field(
-			'enabled_content_types',
-			__( 'Content Types', 'sesamy' ),
-			[ $settings_page_view, 'settings_render_posttype_list' ],
+			'default_paywall',
+			__( 'Default Paywall', 'sesamy' ),
+			[ $settings_page_view, 'settings_render_paywall_select' ],
 			'sesamy',
 			'section_general',
 			[
-				'name' => 'enabled_content_types',
+				'name'      => 'default_paywall',
+				'label_for' => 'default_paywall',
 			]
 		);
-
-		add_settings_field(
-			'development_mode',
-			__( 'Development Mode', 'sesamy' ),
-			[ $settings_page_view, 'settings_render_checkbox' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'      => 'development_mode',
-				'label_for' => __( 'Enabled', 'sesamy' ),
-			]
-		);
-
-		// TODO: Add render settings
-		// add_settings_field(
-		// 'render_settings',
-		// __( 'Render', 'sesamy' ),
-		// [ $settings_page_view, 'settings_render_checkbox_list' ],
-		// 'sesamy',
-		// 'section_general',
-		// [
-		// 'name'    => 'render_settings',
-		// 'options' => [
-		// 'meta'    => 'Metadata',
-		// 'paywall' => 'Paywall',
-		// 'js'      => 'JavaScript',
-		// ],
-		// ]
-		// );
 	}
 }

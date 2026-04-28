@@ -8,6 +8,7 @@
 namespace SesamyPlugin\Core;
 
 use function SesamyPlugin\Helpers\get_enabled_post_types;
+use function SesamyPlugin\Helpers\get_sesamy_client_id;
 use function SesamyPlugin\Helpers\is_config_valid;
 use function SesamyPlugin\Helpers\get_sesamy_setting;
 use function SesamyPlugin\Releases\is_update_available;
@@ -97,7 +98,7 @@ class Assets {
 		if ( ! is_config_valid() ) {
 			return;
 		}
-		$client_id = get_sesamy_setting( 'client_id' );
+		$client_id = get_sesamy_client_id();
 
 		$dev_mode            = get_sesamy_setting( 'development_mode' );
 		$sesamy_scripts_host = $dev_mode ? 'https://scripts.sesamy.dev' : 'https://scripts.sesamy.com';

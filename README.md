@@ -6,7 +6,7 @@ Connect your WordPress site with [Sesamy.com](https://sesamy.com) to sell and ma
 
 ## Quick Start (Local Development)
 
-Prerequisites: [Docker Desktop](https://www.docker.com/products/docker-desktop/), Node.js 18+ (recommended: use `nvm`), PHP 7.3+, [Composer](https://getcomposer.org/).
+Prerequisites: [Docker Desktop](https://www.docker.com/products/docker-desktop/), Node.js 18+ (recommended: use `nvm`), PHP 8.3+, [Composer](https://getcomposer.org/).
 
 ```bash
 # 1. Install dependencies
@@ -57,7 +57,7 @@ Full setup and usage guide: [Sesamy WordPress Plugin Documentation](https://deve
 ### Requirements
 
 - WordPress 4.9+
-- PHP 7.3+
+- PHP 8.3+
 - A Sesamy Publisher account (reach out to us for initial setup)
 
 ## Building a Release

@@ -5,7 +5,7 @@
  * Description:       Add Sesamy functionality (sesamy.com) to your WordPress website.
  * Version:           1.2.19
  * Requires at least: 4.9
- * Requires PHP:      7.2
+ * Requires PHP:      8.3
  * Author:            Sesamy
  * Author URI:        https://sesamy.com/
  * License:           GPL-2.0+
