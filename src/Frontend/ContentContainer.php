@@ -7,8 +7,12 @@
 
 namespace SesamyPlugin\Frontend;
 
+use SesamyPlugin\Capsule\Service as CapsuleService;
+
 use function SesamyPlugin\Helpers\get_enabled_post_types;
+use function SesamyPlugin\Helpers\get_sesamy_environment;
 use function SesamyPlugin\Helpers\get_sesamy_setting;
+use function SesamyPlugin\Helpers\get_sesamy_vendor_id;
 use function SesamyPlugin\Helpers\is_config_valid;
 
 /**
@@ -83,20 +87,35 @@ class ContentContainer {
 
 		$item_src = get_permalink( $post->ID ) ? (string) get_permalink( $post->ID ) : '';
 
-		$html  = '<sesamy-article item-src="' . esc_url( $item_src ) . '" publisher-content-id="' . esc_attr( (string) $post->ID ) . '">';
-		$html .= '<sesamy-content-container lock-mode="' . esc_attr( $lock_mode ) . '">';
-		$html .= '<div slot="preview">' . $preview . '</div>';
-		if ( 'embed' === $lock_mode ) {
-			$html .= '<div slot="content">' . $content . '</div>';
-		} elseif ( 'encode' === $lock_mode ) {
-			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
-			$html .= '<div slot="content" style="display:none;">' . base64_encode( $content ) . '</div>';
+		$html = '<article class="sesamy-article" item-src="' . esc_url( $item_src ) . '" publisher-content-id="' . esc_attr( (string) $post->ID ) . '">';
+
+		if ( 'capsule' === $lock_mode ) {
+			$capsule = CapsuleService::render( $post, $content );
+			if ( null !== $capsule ) {
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- TEMP debug HTML comment, hardcoded in CapsuleService::build_debug_marker.
+				$html .= CapsuleService::$debug_marker;
+				$html .= '<div data-dca-content-name="' . esc_attr( $capsule['contentName'] ) . '">' . $preview . '</div>';
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- manifestScript is publisher-built, JSON_HEX_TAG-escaped <script>.
+				$html .= $capsule['manifestScript'];
+			} else {
+				$html .= $preview;
+			}
+		} else {
+			$html .= '<sesamy-content-container lock-mode="' . esc_attr( $lock_mode ) . '">';
+			$html .= '<div slot="preview">' . $preview . '</div>';
+			if ( 'embed' === $lock_mode ) {
+				$html .= '<div slot="content">' . $content . '</div>';
+			} elseif ( 'encode' === $lock_mode ) {
+				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
+				$html .= '<div slot="content" style="display:none;">' . base64_encode( $content ) . '</div>';
+			}
+			$html .= '</sesamy-content-container>';
 		}
-		$html .= '</sesamy-content-container>';
+
 		if ( $is_locked ) {
 			$html .= $paywall;
 		}
-		$html .= '</sesamy-article>';
+		$html .= '</article>';
 
 		return $html;
 	}
@@ -119,6 +138,29 @@ class ContentContainer {
 
 		if ( empty( $settings_url ) || ! empty( $locked_content_redirect_url ) ) {
 			return '';
+		}
+
+		// `default_paywall` stores the paywall id from the management API
+		// (e.g. `IqCrKb7HkxL4fAJU42Zzr`), not a URL. The `<sesamy-paywall>`
+		// component fetches `settings-url` directly, so resolve the id to a
+		// full URL on the public paywall settings host. Per-post overrides
+		// stored in `_sesamy_custom_paywall_url` are full URLs already and
+		// pass through unchanged.
+		// TODO: this temporary URL lives on `api.sesamy.{tld}` rather than
+		// the proxied `api2` cluster — fold it into the proxy/`sesamy_url`
+		// scheme once the paywall service moves.
+		if ( ! preg_match( '#^https?://#i', (string) $settings_url ) ) {
+			$vendor_id = (string) get_sesamy_vendor_id();
+			if ( '' === $vendor_id ) {
+				return '';
+			}
+			$tld          = 'dev' === get_sesamy_environment() ? 'dev' : 'com';
+			$settings_url = sprintf(
+				'https://api.sesamy.%s/paywall/paywalls/%s/%s.json',
+				$tld,
+				rawurlencode( $vendor_id ),
+				rawurlencode( (string) $settings_url )
+			);
 		}
 
 		return '<sesamy-paywall settings-url="' . esc_url( $settings_url ) . '" />';

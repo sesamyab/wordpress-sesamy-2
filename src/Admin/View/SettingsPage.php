@@ -7,11 +7,13 @@
 
 namespace SesamyPlugin\Admin\View;
 
+use SesamyPlugin\Capsule\Registration;
 use SesamyPlugin\Connect\SesamyApi;
 
 use function SesamyPlugin\Helpers\get_sesamy_connection;
 use function SesamyPlugin\Helpers\get_sesamy_setting;
 use function SesamyPlugin\Helpers\is_sesamy_connected;
+use function SesamyPlugin\Helpers\publisher_domain;
 
 /**
  * Settings Page module.
@@ -37,6 +39,33 @@ class SettingsPage {
 	 */
 	public function register() {
 		add_action( 'admin_menu', [ $this, 'add_sesamy_settings_page' ] );
+		add_action( 'admin_post_sesamy_get_api_token', [ $this, 'handle_get_api_token' ] );
+	}
+
+	/**
+	 * Mint (or reuse the cached) management-API access token and stash it
+	 * in a per-user transient for one-shot display. The token never goes
+	 * through a query string and gets wiped from the transient after the
+	 * settings page reads it.
+	 *
+	 * @return never
+	 */
+	public function handle_get_api_token(): never {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You do not have permission to do this.', 'sesamy' ), '', [ 'response' => 403 ] );
+		}
+		check_admin_referer( 'sesamy_get_api_token' );
+
+		$user_id = get_current_user_id();
+		$token   = SesamyApi::get_access_token();
+		if ( is_wp_error( $token ) ) {
+			set_transient( 'sesamy_token_error_' . $user_id, (string) $token->get_error_message(), MINUTE_IN_SECONDS );
+			wp_safe_redirect( add_query_arg( 'sesamy_token', 'error', admin_url( 'admin.php?page=sesamy' ) ) );
+			exit;
+		}
+		set_transient( 'sesamy_token_show_' . $user_id, (string) $token, 5 * MINUTE_IN_SECONDS );
+		wp_safe_redirect( add_query_arg( 'sesamy_token', 'ready', admin_url( 'admin.php?page=sesamy' ) ) . '#sesamy-api-token' );
+		exit;
 	}
 
 	/**
@@ -62,18 +91,77 @@ class SettingsPage {
 	 * @return void
 	 */
 	public function admin_page() {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only display flag from a same-origin redirect after the nonce-checked admin-post handler.
+		$token_flag = isset( $_GET['sesamy_token'] ) ? sanitize_text_field( wp_unslash( $_GET['sesamy_token'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+		$user_id     = get_current_user_id();
+		$token_value = '';
+		$token_error = '';
+		if ( 'ready' === $token_flag ) {
+			$token_value = (string) get_transient( 'sesamy_token_show_' . $user_id );
+			delete_transient( 'sesamy_token_show_' . $user_id );
+		} elseif ( 'error' === $token_flag ) {
+			$token_error = (string) get_transient( 'sesamy_token_error_' . $user_id );
+			delete_transient( 'sesamy_token_error_' . $user_id );
+		}
+		// Pre-connect fields (currently just `development_mode` on local
+		// installs) — surfaced as a separate small form so the operator can
+		// pick the right cluster *before* hitting Connect. Hidden once
+		// connected: post-connect editing of these belongs in Advanced.
+		global $wp_settings_fields;
+		$has_pre_connect = ! is_sesamy_connected() && ! empty( $wp_settings_fields['sesamy']['section_pre_connect'] );
 		?>
 		<div class="wrap" id="sesamy-settings">
 			<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 			<?php $this->render_connection_status(); ?>
 			<?php if ( is_sesamy_connected() ) : ?>
+				<?php $this->render_publisher_registration(); ?>
+			<?php endif; ?>
+			<?php if ( $has_pre_connect ) : ?>
+				<form action="options.php" method="post" style="margin-bottom: 2em;">
+					<?php settings_errors( 'sesamy_settings' ); ?>
+					<?php settings_fields( 'sesamy' ); ?>
+					<table class="form-table" role="presentation">
+						<?php do_settings_fields( 'sesamy', 'section_pre_connect' ); ?>
+					</table>
+					<?php submit_button( __( 'Save', 'sesamy' ), 'secondary', 'submit', false ); ?>
+				</form>
+			<?php endif; ?>
+			<?php if ( is_sesamy_connected() ) : ?>
 				<form action="options.php" method="post">
-					<?php
-					settings_errors( 'sesamy_settings' );
-					settings_fields( 'sesamy' );
-					do_settings_sections( 'sesamy' );
-					submit_button( 'Save Settings' );
-					?>
+					<?php settings_errors( 'sesamy_settings' ); ?>
+					<?php settings_fields( 'sesamy' ); ?>
+					<table class="form-table" role="presentation">
+						<?php do_settings_fields( 'sesamy', 'section_general' ); ?>
+					</table>
+					<details class="sesamy-advanced" style="margin: 1.5em 0;" <?php echo ( '' !== $token_value || '' !== $token_error ) ? 'open' : ''; ?>>
+						<summary style="cursor: pointer; padding: 0.5em 0; font-weight: 600;"><?php esc_html_e( 'Advanced', 'sesamy' ); ?></summary>
+						<table class="form-table" role="presentation">
+							<?php do_settings_fields( 'sesamy', 'section_advanced' ); ?>
+						</table>
+						<hr style="margin: 1.5em 0;">
+						<h3 id="sesamy-api-token" style="margin-top: 0;"><?php esc_html_e( 'API token', 'sesamy' ); ?></h3>
+						<p class="description"><?php esc_html_e( 'Mint a short-lived access token to call the Sesamy management API directly (curl, Postman, etc.). The token has the same scope as the connected client and is invalidated when the connection is removed.', 'sesamy' ); ?></p>
+						<p>
+							<?php
+							// `form="sesamy-token-form"` associates this button with the
+							// satellite form below — HTML doesn't allow nested forms,
+							// and we can't reuse the main settings form (different action).
+							?>
+							<button type="submit" class="button" form="sesamy-token-form"><?php esc_html_e( 'Get API token', 'sesamy' ); ?></button>
+						</p>
+						<?php if ( '' !== $token_value ) : ?>
+							<p class="description"><?php esc_html_e( 'Copy the token now — it expires shortly. Send it as a Bearer header.', 'sesamy' ); ?></p>
+							<textarea readonly rows="4" style="width:100%; max-width:60em; font-family: monospace; word-break: break-all;" onclick="this.select();"><?php echo esc_textarea( $token_value ); ?></textarea>
+						<?php elseif ( '' !== $token_error ) : ?>
+							<div class="notice notice-error inline" style="margin-top: 0.5em;"><pre style="white-space: pre-wrap; word-break: break-word; margin: 0; font-family: inherit;"><?php echo esc_html( $token_error ); ?></pre></div>
+						<?php endif; ?>
+					</details>
+					<?php submit_button( 'Save Settings' ); ?>
+				</form>
+				<form id="sesamy-token-form" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post" style="display:none;">
+					<input type="hidden" name="action" value="sesamy_get_api_token">
+					<?php wp_nonce_field( 'sesamy_get_api_token' ); ?>
 				</form>
 			<?php endif; ?>
 		</div>
@@ -149,11 +237,176 @@ class SettingsPage {
 	}
 
 	/**
+	 * Render the Publisher registration panel: list of domains the api-proxy
+	 * has on file for this vendor's `trustedPublisherKeys`, plus controls to
+	 * add/remove/re-register. Lives in the main flow (not Advanced) because
+	 * a missing/stale registration is the leading cause of capsule decrypt
+	 * failures and we want it to be the first thing an operator sees.
+	 *
+	 * @return void
+	 */
+	public function render_publisher_registration() {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- read-only display flags from same-origin redirects after nonce-checked admin-post handlers.
+		$status  = isset( $_GET['sesamy_publisher_status'] ) ? sanitize_text_field( wp_unslash( $_GET['sesamy_publisher_status'] ) ) : '';
+		$domain  = isset( $_GET['sesamy_publisher_domain'] ) ? sanitize_text_field( wp_unslash( $_GET['sesamy_publisher_domain'] ) ) : '';
+		$message = isset( $_GET['sesamy_publisher_message'] ) ? sanitize_text_field( wp_unslash( $_GET['sesamy_publisher_message'] ) ) : '';
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+		$canonical = publisher_domain();
+		$listing   = Registration::list_publishers();
+		$list_err  = is_wp_error( $listing ) ? $listing->get_error_message() : '';
+		$entries   = is_array( $listing ) ? $listing : [];
+		?>
+		<h2 id="sesamy-publisher-registration"><?php esc_html_e( 'Publisher registration', 'sesamy2' ); ?></h2>
+		<p class="description" style="max-width: 60em;">
+			<?php esc_html_e( 'Sesamy verifies each capsule unlock against the publishers registered for this vendor. The canonical site domain is registered automatically when you connect — add additional domains here for staging environments, multisite hostnames, or build-time encryption from a separate workstation.', 'sesamy2' ); ?>
+		</p>
+
+		<?php if ( 'registered' === $status ) : ?>
+			<div class="notice notice-success is-dismissible"><p><?php echo esc_html( sprintf( /* translators: %s: domain. */ __( 'Registered %s with the api-proxy.', 'sesamy2' ), $domain ) ); ?></p></div>
+		<?php elseif ( 'unregistered' === $status ) : ?>
+			<div class="notice notice-success is-dismissible"><p><?php echo esc_html( sprintf( /* translators: %s: domain. */ __( 'Removed %s from the api-proxy.', 'sesamy2' ), $domain ) ); ?></p></div>
+		<?php elseif ( 'error' === $status ) : ?>
+			<div class="notice notice-error">
+				<p><?php echo esc_html( sprintf( /* translators: %s: domain. */ __( 'Registration failed for %s.', 'sesamy2' ), $domain ) ); ?></p>
+				<?php if ( '' !== $message ) : ?>
+					<pre style="white-space: pre-wrap; word-break: break-word; margin: 0; font-family: inherit;"><?php echo esc_html( $message ); ?></pre>
+				<?php endif; ?>
+			</div>
+		<?php endif; ?>
+
+		<?php if ( '' !== $list_err ) : ?>
+			<div class="notice notice-warning inline">
+				<p><?php esc_html_e( 'Could not fetch the registered publishers list:', 'sesamy2' ); ?></p>
+				<pre style="white-space: pre-wrap; word-break: break-word; margin: 0; font-family: inherit;"><?php echo esc_html( $list_err ); ?></pre>
+			</div>
+		<?php endif; ?>
+
+		<table class="widefat striped" style="max-width: 60em; margin-bottom: 1em;">
+			<thead>
+				<tr>
+					<th scope="col"><?php esc_html_e( 'Domain', 'sesamy2' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Mode', 'sesamy2' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Updated', 'sesamy2' ); ?></th>
+					<th scope="col"><?php esc_html_e( 'Probe', 'sesamy2' ); ?></th>
+					<th scope="col" style="width: 12em;"><?php esc_html_e( 'Actions', 'sesamy2' ); ?></th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php if ( empty( $entries ) && '' === $list_err ) : ?>
+					<tr><td colspan="5"><em><?php esc_html_e( 'No publishers registered yet.', 'sesamy2' ); ?></em></td></tr>
+				<?php endif; ?>
+				<?php
+				foreach ( $entries as $entry ) :
+					if ( ! is_array( $entry ) ) {
+						continue;
+					}
+					$row_domain = isset( $entry['domain'] ) ? (string) $entry['domain'] : '';
+					if ( '' === $row_domain ) {
+						continue;
+					}
+					$mode_label = ! empty( $entry['jwksUri'] ) ? 'JWKS' : ( ! empty( $entry['signingKeyPem'] ) || ! empty( $entry['hasSigningKey'] ) ? 'PEM' : '—' );
+					$updated_at = isset( $entry['updatedAt'] ) ? (string) $entry['updatedAt'] : '';
+					$probe      = is_array( $entry['probe'] ?? null ) ? $entry['probe'] : null;
+					$probe_ok   = $probe ? (bool) ( $probe['ok'] ?? false ) : null;
+					$probe_msg  = $probe ? (string) ( $probe['message'] ?? '' ) : '';
+					$is_self    = $row_domain === $canonical;
+					?>
+					<tr>
+						<td>
+							<code><?php echo esc_html( $row_domain ); ?></code>
+							<?php if ( $is_self ) : ?>
+								<span class="description" style="margin-left: 0.5em;"><?php esc_html_e( '(this site)', 'sesamy2' ); ?></span>
+							<?php endif; ?>
+							<?php if ( ! empty( $entry['jwksUri'] ) ) : ?>
+								<br><span class="description"><?php echo esc_html( (string) $entry['jwksUri'] ); ?></span>
+							<?php endif; ?>
+						</td>
+						<td><?php echo esc_html( $mode_label ); ?></td>
+						<td>
+							<?php
+							if ( '' === $updated_at ) {
+								echo '—';
+							} else {
+								// Accept either ISO-8601 or epoch seconds. wp_date() gives
+								// us the site's date/time format with the right tz.
+								$ts        = is_numeric( $updated_at ) ? (int) $updated_at : (int) strtotime( $updated_at );
+								$formatted = $ts ? wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $ts ) : '';
+								echo esc_html( false !== $formatted && '' !== $formatted ? $formatted : $updated_at );
+							}
+							?>
+						</td>
+						<td>
+							<?php if ( null === $probe_ok ) : ?>
+								<span class="description">—</span>
+							<?php elseif ( $probe_ok ) : ?>
+								<span style="color:#1a7f37;">✓</span>
+							<?php else : ?>
+								<span style="color:#b32d2e;" title="<?php echo esc_attr( $probe_msg ); ?>">⚠</span>
+								<?php if ( '' !== $probe_msg ) : ?>
+									<br><span class="description"><?php echo esc_html( $probe_msg ); ?></span>
+								<?php endif; ?>
+							<?php endif; ?>
+						</td>
+						<td>
+							<form action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post" style="display:inline;">
+								<input type="hidden" name="action" value="sesamy_unregister_publisher">
+								<input type="hidden" name="domain" value="<?php echo esc_attr( $row_domain ); ?>">
+								<?php wp_nonce_field( 'sesamy_unregister_publisher' ); ?>
+								<button type="submit" class="button-link-delete" onclick="return confirm('<?php echo esc_js( __( 'Remove this publisher?', 'sesamy2' ) ); ?>');"><?php esc_html_e( 'Remove', 'sesamy2' ); ?></button>
+							</form>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+
+		<h3 style="margin-top: 1.5em;"><?php esc_html_e( 'Add a domain', 'sesamy2' ); ?></h3>
+		<form action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post" style="margin-bottom: 1em;">
+			<input type="hidden" name="action" value="sesamy_register_publisher">
+			<?php wp_nonce_field( 'sesamy_register_publisher' ); ?>
+			<p>
+				<label for="sesamy-publisher-domain"><?php esc_html_e( 'Domain', 'sesamy2' ); ?></label>
+				<input type="text" id="sesamy-publisher-domain" name="domain" class="regular-text" placeholder="staging.example.com" required>
+				<select name="mode">
+					<option value=""><?php esc_html_e( 'Auto', 'sesamy2' ); ?></option>
+					<option value="pem"><?php esc_html_e( 'Pinned PEM', 'sesamy2' ); ?></option>
+					<option value="jwks_uri"><?php esc_html_e( 'JWKS URI', 'sesamy2' ); ?></option>
+				</select>
+				<button type="submit" class="button button-secondary"><?php esc_html_e( 'Register', 'sesamy2' ); ?></button>
+			</p>
+			<p class="description" style="max-width: 60em;">
+				<?php esc_html_e( 'Auto picks JWKS URI for publicly-reachable HTTPS hosts and pinned PEM otherwise (localhost / .local / .test). Manually-added domains default to pinned PEM since the plugin only serves a JWKS document at this site’s own home URL.', 'sesamy2' ); ?>
+			</p>
+		</form>
+
+		<form action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" method="post" style="margin-bottom: 2em;">
+			<input type="hidden" name="action" value="sesamy_register_publisher_self">
+			<?php wp_nonce_field( 'sesamy_register_publisher_self' ); ?>
+			<button type="submit" class="button">
+			<?php
+				echo esc_html( sprintf( /* translators: %s: canonical domain. */ __( 'Re-register %s', 'sesamy2' ), $canonical ) );
+			?>
+			</button>
+			<span class="description" style="margin-left: 0.5em;"><?php esc_html_e( 'Forces a fresh PUT for this site’s domain. Useful after rotating the publisher signing key.', 'sesamy2' ); ?></span>
+		</form>
+		<?php
+	}
+
+	/**
 	 * General Section callback.
 	 *
 	 * @return void
 	 */
 	public function section_general_callback() {}
+
+	/**
+	 * Advanced Section callback. Body is rendered inside a `<details>`
+	 * fold-out by `admin_page()`, so nothing to emit here.
+	 *
+	 * @return void
+	 */
+	public function section_advanced_callback() {}
 
 	/**
 	 * Text field render
@@ -269,6 +522,71 @@ class SettingsPage {
 	}
 
 	/**
+	 * Pass select render. Pulls the publisher's passes from the management
+	 * API at render time; falls back to a disabled control + error message
+	 * if the API is unreachable. Mirrors `settings_render_paywall_select`.
+	 *
+	 * @param array{name: string} $args Arguments of the pass select field.
+	 * @return void
+	 */
+	public function settings_render_pass_select( $args ) {
+		$field_name    = $args['name'];
+		$current_value = (string) ( get_sesamy_setting( $field_name ) ?? '' );
+
+		$passes = SesamyApi::get_passes();
+
+		if ( is_wp_error( $passes ) ) {
+			echo '<input type="hidden" name="sesamy_settings[' . esc_attr( $field_name ) . ']" value="' . esc_attr( $current_value ) . '">';
+			echo '<p class="description" style="color:#b32d2e;">' . esc_html(
+				sprintf(
+					/* translators: %s: error message from the management API. */
+					__( 'Could not load passes: %s', 'sesamy2' ),
+					$passes->get_error_message()
+				)
+			) . '</p>';
+			return;
+		}
+
+		echo '<select id="' . esc_attr( $field_name ) . '" name="sesamy_settings[' . esc_attr( $field_name ) . ']" class="regular-text">';
+		echo '<option value="">' . esc_html__( '— Select a pass —', 'sesamy2' ) . '</option>';
+
+		$found_current = false;
+		foreach ( $passes as $pass ) {
+			if ( ! is_array( $pass ) ) {
+				continue;
+			}
+			$sku   = isset( $pass['sku'] ) ? (string) $pass['sku'] : '';
+			$label = isset( $pass['title'] ) ? (string) $pass['title'] : $sku;
+			if ( '' === $sku ) {
+				continue;
+			}
+			$selected = selected( $current_value, $sku, false );
+			if ( $current_value === $sku ) {
+				$found_current = true;
+			}
+			echo '<option value="' . esc_attr( $sku ) . '" ' . esc_attr( $selected ) . '>' . esc_html( $label ) . '</option>';
+		}
+
+		// Preserve a previously-saved value that no longer appears in the list
+		// (e.g. a deleted pass) so saving the form does not silently clear it.
+		if ( '' !== $current_value && ! $found_current ) {
+			echo '<option value="' . esc_attr( $current_value ) . '" selected>' . esc_html(
+				sprintf(
+					/* translators: %s: pass sku no longer returned by the API. */
+					__( '%s (not found)', 'sesamy2' ),
+					$current_value
+				)
+			) . '</option>';
+		}
+
+		echo '</select>';
+
+		if ( empty( $passes ) ) {
+			echo '<p class="description">' . esc_html__( 'No passes found in your Sesamy account.', 'sesamy2' ) . '</p>';
+		}
+	}
+
+	/**
 	 * Checkbox field render.
 	 *
 	 * @param array{name: string, label_for: string} $args Arguments of checkbox fields.
@@ -280,7 +598,15 @@ class SettingsPage {
 		$field_label   = $args['label_for'];
 		$current_value = get_sesamy_setting( $field_name );
 
-		echo '<label><input type="checkbox" name="sesamy_settings[' . esc_attr( $args['name'] ) . ']" value="1" ' . checked( $current_value, true, false ) . '>' . esc_html( $field_label ) . '</label>';
+		// Hidden `0` precedes the checkbox so unchecked submissions store an
+		// explicit false. Without it the key would simply be absent from POST,
+		// the defaults map would re-fill it on next read, and "off" would never
+		// stick for fields that default to true.
+		echo '<label>'
+			. '<input type="hidden" name="sesamy_settings[' . esc_attr( $field_name ) . ']" value="0">'
+			. '<input type="checkbox" name="sesamy_settings[' . esc_attr( $field_name ) . ']" value="1" ' . checked( $current_value, true, false ) . '>'
+			. esc_html( $field_label )
+			. '</label>';
 	}
 
 	/**

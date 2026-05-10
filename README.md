@@ -1,12 +1,263 @@
 # Sesamy for WordPress (BETA)
 
-Connect your WordPress site with [Sesamy.com](https://sesamy.com) to sell and manage access to your premium digital content through secure single purchases or subscriptions.
+Connect your WordPress site to [Sesamy.com](https://sesamy.com) to sell and manage access to your premium digital content through single purchases or subscriptions. The plugin handles the publisher side of the integration: marking content as gated, encrypting it for delivery, attaching the metadata that Sesamy's paywall strategies need, and rendering the paywall + reader unlock UI.
 
 > **Beta** — intended for testing, evaluation, and feedback. Report issues via https://support.sesamy.com.
 
-## Quick Start (Local Development)
+---
 
-Prerequisites: [Docker Desktop](https://www.docker.com/products/docker-desktop/), Node.js 18+ (recommended: use `nvm`), PHP 8.3+, [Composer](https://getcomposer.org/).
+## Table of contents
+
+- [What the plugin does](#what-the-plugin-does)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Connecting to Sesamy](#connecting-to-sesamy)
+- [Plugin settings](#plugin-settings)
+  - [Pre-connect: Development mode](#pre-connect-development-mode)
+  - [General: Content Types](#general-content-types)
+  - [General: Default Paywall](#general-default-paywall)
+  - [General: Default Pass](#general-default-pass)
+  - [Advanced: Lock Mode](#advanced-lock-mode)
+  - [Advanced: First-party proxy](#advanced-first-party-proxy)
+  - [Advanced: API token](#advanced-api-token)
+- [Publisher registration](#publisher-registration)
+- [Per-post controls](#per-post-controls)
+- [Frontend behavior](#frontend-behavior)
+- [Local development](#local-development)
+- [Linting and tests](#linting-and-tests)
+- [Building a release](#building-a-release)
+- [Project structure](#project-structure)
+- [Documentation and support](#documentation-and-support)
+
+---
+
+## What the plugin does
+
+Once connected, the plugin:
+
+1. Adds a **Sesamy** menu in WP admin where you connect the site, pick the default paywall and pass, and decide which post types are gateable.
+2. Adds **per-post controls** (Block Editor sidebar, Classic Editor meta box, Quick Edit, and Bulk Edit) to lock individual posts and override defaults.
+3. Emits Sesamy meta tags in `<head>` — vendor id, default pass, currency, per-post access level, price, and any locked-content redirect — so the Sesamy frontend bundle can identify the publisher and the article.
+4. Wraps the post content in a Sesamy container at render time so the bundle can apply the paywall, swap in unlocked content for entitled readers, or redirect to an alternative URL.
+5. Optionally proxies Sesamy auth and API traffic through your own domain (`/sesamy/api/*`, `/sesamy/auth/*`) for first-party cookies and ad-blocker resilience.
+6. Optionally encrypts gated regions on save using **Capsule** (server-side AES-256-GCM with sealed keys) so ciphertext — not plaintext — is what ships in the page HTML.
+
+Access decisions (who can read which article) live in **paywall strategies on Sesamy**, not in WordPress. The plugin's job is to attach the right signals to each page; the strategy decides.
+
+---
+
+## Requirements
+
+- WordPress 4.9 or newer
+- PHP 8.3 or newer
+- A Sesamy publisher account (contact Sesamy for initial onboarding)
+
+---
+
+## Installation
+
+### Production install
+
+1. Download the latest `.zip` from the [Releases page](https://github.com/sesamyab/wordpress-sesamy-2/releases).
+2. In WordPress admin, go to **Plugins → Add New → Upload Plugin** and upload the `.zip`.
+3. Activate the plugin. A new top-level **Sesamy** menu appears in the admin sidebar.
+4. Open **Sesamy** and follow [Connecting to Sesamy](#connecting-to-sesamy).
+
+### Local development install
+
+See [Local development](#local-development) below.
+
+---
+
+## Connecting to Sesamy
+
+The Sesamy admin page opens in a "not connected" state. You have two options:
+
+- **Connect to Sesamy** (recommended) — clicks through an OAuth-style handshake with `connect.sesamy.com`. You'll see a confirmation screen showing the domain that's connecting, then return to WP with credentials provisioned. The site's canonical domain is also automatically registered as a trusted publisher (see [Publisher registration](#publisher-registration)).
+- **Disconnect** — once connected, the same panel exposes a Disconnect button that revokes the integration server-side and wipes the locally stored credentials.
+
+What gets stored after a successful connect:
+
+| Field | Purpose |
+|---|---|
+| `client_id` | The M2M credential identifying this WP install to Sesamy |
+| `tenant` (vendor id) | Stable publisher identifier emitted in the `sesamy:vendor-id` meta tag |
+| `domain` | The canonical site domain that was connected |
+| `environment` | `prod` or `dev` — which Sesamy cluster the credential lives on |
+| `connected_at`, `connected_by` | Audit fields displayed on the settings page |
+
+The connection status panel at the top of the Sesamy settings page shows all of these.
+
+---
+
+## Plugin settings
+
+The settings page at **Sesamy → Settings** is split into three sections. Pre-connect fields appear before you connect; General and Advanced only render once a connection is established (most settings depend on data fetched from your Sesamy account).
+
+### Pre-connect: Development mode
+
+- **Setting key:** `development_mode`
+- **Type:** Checkbox
+- **Default:** Off (production cluster)
+- **Visible only on local installs** (`local`/`development` `WP_ENVIRONMENT_TYPE`, or `.local` / `.test` / `localhost` / `127.0.0.1` host)
+
+Switches every Sesamy URL the plugin emits from `*.sesamy.com` to `*.sesamy.dev` (api2, auth2, scripts, js, checkout, embed). Must be set **before** clicking Connect, because the connect flow has to know which cluster to register the credential against.
+
+If you toggle it after connecting, you'll need to disconnect and reconnect — credentials minted on `.com` will not authenticate against `.dev` and vice-versa.
+
+This setting is intentionally hidden on production installs. Production publishers should never need to touch it, and exposing it would invite accidental flips.
+
+### General: Content Types
+
+- **Setting key:** `enabled_content_types`
+- **Type:** Checkbox list of public post types (excludes `attachment`)
+- **Default:** None enabled
+
+Selects which WordPress post types the plugin operates on. For each enabled post type:
+
+- The Sesamy meta box, Quick Edit, and Bulk Edit fields appear on its admin screens.
+- Custom-fields support is added (so per-post lock metadata can be saved).
+- An extra **Sesamy** column shows up in the post list, with lock/single-purchase indicators.
+- The frontend `the_content` filter wraps singular pages of that post type in a Sesamy article container.
+
+Post types that are not in this list are completely untouched by the plugin.
+
+### General: Default Paywall
+
+- **Setting key:** `default_paywall`
+- **Type:** Select (live-fetched from your Sesamy account)
+- **Default:** None
+
+The paywall configuration that's served to readers when a locked post does not have a per-post override. The dropdown is populated by calling the Sesamy management API at render time, so it reflects exactly what's in your Sesamy dashboard.
+
+If a previously-saved paywall id is no longer returned by the API (e.g. it was deleted in the dashboard), it's still preserved as a "(not found)" option so saving the form doesn't silently clear it.
+
+If the management API call fails, an error message is shown inline and the existing value is kept.
+
+### General: Default Pass
+
+- **Setting key:** `default_pass`
+- **Type:** Select (live-fetched from your Sesamy account)
+- **Default:** None
+
+The Sesamy pass (entitlement bundle) that's announced to the frontend bundle via the `sesamy:pass` meta tag. Used by the Sesamy reader UI to tell users what subscription unlocks the content. Like `default_paywall`, the dropdown is populated live from the management API and previously-saved-but-deleted SKUs are preserved as "(not found)".
+
+### Advanced: Lock Mode
+
+- **Setting key:** `lock_mode`
+- **Type:** Select
+- **Default:** `capsule` (server-side encryption)
+- **Options:**
+  - **Server-side encryption (`capsule`)** — content is encrypted at publish time with AES-256-GCM, sealed per issuer, and shipped as ciphertext inside the page HTML. The Sesamy bundle requests an unseal from the Sesamy issuer; on success the browser decrypts in-place. Plaintext never appears in the rendered HTML, REST output, or any cache layer. **Recommended for premium content.**
+  - **Embed (`embed`)** — gated content is served in plaintext inside a `<sesamy-content-container>` slot. The bundle hides it behind the paywall in the DOM and reveals it for entitled readers. Easy to set up, but the plaintext is present in the HTML source.
+  - **Encode (`encode`)** — gated content is base64-encoded inside the slot. A trivial obfuscation (anyone can decode it), but enough to defeat naive scrapers and the WP REST API's `content.rendered` field.
+
+Note: posts that aren't locked always render in `embed` mode regardless of this setting — there's nothing to protect, and `embed` keeps the content fully readable for SEO.
+
+### Advanced: First-party proxy
+
+- **Setting key:** `use_first_party_proxy`
+- **Type:** Checkbox
+- **Default:** On (recommended)
+
+When on, all Sesamy auth (`/authorize`, OIDC discovery, JWKS) and API (`/api/*`) traffic for the reader bundle routes through `https://your-domain.com/sesamy/auth/*` and `https://your-domain.com/sesamy/api/*` rather than directly to `auth2.sesamy.com` and `api2.sesamy.com`. Benefits:
+
+- **First-party cookies** — Safari ITP, Firefox ETP, and Brave shields no longer degrade the session.
+- **Ad-blocker resilience** — Sesamy hostnames are no longer visible to filter lists.
+- **Simpler CSP** — `connect-src 'self'` covers it.
+- **EU data sovereignty** — reader traffic flows through your domain.
+
+Server-to-server PHP calls (token exchange, paywall/pass listing, publisher registration) and admin-only browser flows (Connect, DCR handshake) always bypass the proxy — they don't benefit from first-party cookies and only add a hop.
+
+When off, the bundle calls Sesamy directly. Capsule ciphertext is routing-agnostic, so you can flip this setting without re-encrypting any content.
+
+### Advanced: API token
+
+Not a saved setting — a button that mints a short-lived management-API access token using the connected client credentials and displays it once for copy-paste use (curl, Postman, etc.). The token has the same scope as the connected client and is invalidated when the connection is removed.
+
+The token is delivered via a one-shot per-user transient (5 minutes) and never appears in a query string. Reading the settings page after the token is issued will display it once and immediately wipe it.
+
+---
+
+## Publisher registration
+
+When you connect, the plugin automatically registers the site's canonical domain as a **trusted publisher** with the Sesamy api-proxy. Sesamy verifies every capsule unlock against this list, so a missing or stale registration is the leading cause of "I subscribed but the content stays locked" reports.
+
+The **Publisher registration** panel (only visible after connecting) lets you:
+
+- See every domain currently registered for this vendor, the verification mode, last-updated timestamp, and a live probe result (✓/⚠).
+- **Add a domain** with a verification mode:
+  - **Auto** — picks JWKS URI for publicly-reachable HTTPS hosts and pinned PEM otherwise (localhost / `.local` / `.test`).
+  - **JWKS URI** — Sesamy fetches this site's public keys from `<domain>/.well-known/sesamy-jwks.json`. Use for additional canonical/secondary domains where the WP plugin runs.
+  - **Pinned PEM** — Sesamy stores a copy of the publisher signing key. Use for staging/local hosts and for build-time encryption from a workstation that isn't publicly reachable.
+- **Re-register this site** — forces a fresh PUT for the canonical domain. Useful after rotating the publisher signing key.
+- **Remove** any registration.
+
+Manually-added domains default to pinned PEM since the plugin only serves a JWKS document at this site's own home URL. If you operate the same Sesamy account from multiple WP installs (multisite, regional editions), register each one.
+
+---
+
+## Per-post controls
+
+For every enabled post type, additional UI surfaces let editors gate individual posts.
+
+### Block Editor sidebar / Classic Editor meta box
+
+Fields:
+
+| Field | Meta key | Notes |
+|---|---|---|
+| Lock this article | `_sesamy_locked` | When off, post is fully public and the lock-mode setting is ignored. |
+| Enable single purchase | `_sesamy_enable_single_purchase` | Shows the Price field and emits a `sesamy:price` meta. Only meaningful when Locked. |
+| Price | `_sesamy_price` | Per-post override of `default_price`. Currency comes from the global `default_currency`. |
+| Custom Paywall URL | `_sesamy_custom_paywall_url` | Per-post override of `default_paywall`. Accepts a full URL or a paywall id. |
+| Locked content redirect URL | `_sesamy_locked_content_redirect_url` | When set, locked readers are redirected here instead of seeing a paywall. Emitted as `sesamy:locked-content-redirect-url`. |
+| Access level | `_sesamy_access_level` | Stored value emitted as `sesamy:accessLevel`. Defaults to `entitlement` when locked, `public` when unlocked. |
+
+### Quick Edit
+
+A compact two-checkbox version (Locked, Single purchase) appears in the post list table's Quick Edit panel.
+
+### Bulk Edit
+
+The Bulk Edit panel exposes the same two fields as `— No Change — / Locked / Not Locked` and `— No Change — / Enabled / Disabled` selects, so you can flip lock state on dozens of posts at once.
+
+### Post list column
+
+Enabled post types get an extra **Sesamy** column showing 🔒 Locked and 💰 Single Purchase pills based on the meta values above.
+
+---
+
+## Frontend behavior
+
+When the plugin is connected and a post type is enabled, every singular page of that post type:
+
+1. Outputs a `<!-- Sesamy WordPress plugin vX.Y.Z -->` source comment on `wp_head`.
+2. Emits these meta tags (when applicable):
+   - `sesamy:vendor-id` — your tenant id
+   - `sesamy:pass` — the default pass SKU
+   - `sesamy:currency` — your default currency
+   - `sesamy:accessLevel` — `public` or `entitlement` (or whatever the post override is)
+   - `sesamy:price` — per-post override or `default_price`, only when single purchase is enabled
+   - `sesamy:locked-content-redirect-url` — per-post redirect URL, only when set
+3. Wraps the post content in `<article class="sesamy-article" item-src="..." publisher-content-id="...">` and applies the configured lock mode (Capsule / Embed / Encode).
+4. Appends the paywall (`<sesamy-paywall settings-url="..."/>`) for locked posts that don't have a redirect URL.
+5. Loads the Sesamy frontend bundle, configured with the proxied or direct API/auth bases as appropriate.
+
+The output is **byte-identical for every reader**. Per-user state is resolved client-side after page load, which keeps every page fully cacheable on Cloudflare, WP Super Cache, Kinsta object cache, etc.
+
+---
+
+## Local development
+
+### Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- Node.js 18+ (use `nvm` to match `.nvmrc`)
+- PHP 8.3+
+- [Composer](https://getcomposer.org/)
+
+### Setup
 
 ```bash
 # 1. Install dependencies
@@ -29,7 +280,11 @@ For development with hot reload:
 yarn watch
 ```
 
-## Linting & Tests
+The local environment automatically loads `dist/fast-refresh.php` and uses the 10up Toolkit's dev URLs when the host matches `*.local` / `*.test` / `localhost` / `127.0.0.1` or `WP_ENVIRONMENT_TYPE` is `local`/`development`.
+
+---
+
+## Linting and tests
 
 ```bash
 # PHP
@@ -44,44 +299,54 @@ yarn lint-style        # Stylelint
 yarn test              # Jest
 ```
 
-## Documentation
+---
 
-Full setup and usage guide: [Sesamy WordPress Plugin Documentation](https://developers.sesamy.com/integrations/cms/wordpress.html)
-
-## Installation (Production)
-
-1. Download the latest `.zip` from the [Releases page](https://github.com/sesamyab/wordpress-sesamy-2/releases).
-2. In WordPress admin, go to **Plugins > Add New > Upload Plugin** and upload the `.zip`.
-3. Activate the plugin and configure it under the **Sesamy** settings page.
-
-### Requirements
-
-- WordPress 4.9+
-- PHP 8.3+
-- A Sesamy Publisher account (reach out to us for initial setup)
-
-## Building a Release
+## Building a release
 
 ```bash
 ./build-zip.sh
 ```
 
-This produces `sesamy-wordpress.zip` ready for distribution.
+This produces `sesamy-wordpress.zip` ready for distribution via WP admin → Plugins → Upload Plugin.
 
-## Project Structure
+The bundled `@sesamy/sesamy-js` version is pinned in `sesamy2.php` (`SESAMY_JS_VERSION`) and kept in sync with `package.json` by `update-plugin-version.js` on precommit, so the script-host chain (auth0-plugin, capsule-plugin, sesamy-components, core) loads in lockstep.
+
+---
+
+## Project structure
 
 ```
-sesamy2.php              # Plugin entry point
+sesamy2.php                # Plugin entry point and bootstrap
 src/
-  Admin/Settings/        # Settings registration and sanitization
-  Admin/View/            # Admin UI (settings page, release notices)
-  Api/                   # REST API endpoints
-  Core/                  # Asset enqueuing
-  Frontend/              # Content container and meta tag rendering
-  Support/               # Helper functions
+  Admin/Settings/Core.php  # Plugin settings registration + sanitization
+  Admin/Settings/Post.php  # Per-post fields, Quick Edit, Bulk Edit, list column
+  Admin/View/SettingsPage.php   # Sesamy settings page UI
+  Admin/View/MetaBox.php        # Classic Editor meta box
+  Admin/View/ReleaseNotice.php  # Plugin update banner
+  Api/Rest.php             # Plugin REST endpoints
+  Capsule/Service.php      # Capsule encrypt/seal pipeline
+  Capsule/Jwks.php         # Serves the publisher signing key as JWKS
+  Capsule/Registration.php # Trusted-publisher registration with api-proxy
+  Connect/ConnectFlow.php  # OAuth-style connect/disconnect handlers
+  Connect/SesamyApi.php    # Management API client (paywalls, passes, tokens)
+  Connect/AuthHeroClient.php    # Token exchange against AuthHero
+  Core/Assets.php          # Enqueues the Sesamy frontend bundle
+  Frontend/ContentContainer.php # Wraps `the_content` per lock mode
+  Frontend/Meta.php        # `<head>` meta tags
+  Frontend/Login.php       # Login state hooks
+  Proxy/Router.php         # `/sesamy/api/*` and `/sesamy/auth/*` proxy
+  Support/helpers.php      # Settings defaults, URL builder, helpers
 assets/
-  js/                    # JavaScript source (admin.js, post-settings.js)
-  css/                   # Stylesheets
+  js/                      # JS source (admin.js, post-settings.js, sesamy.js)
+  css/                     # Stylesheets
 tests/
-  src/                   # PHP unit tests (mirrors src/ structure)
+  src/                     # PHP unit tests (mirrors src/ structure)
 ```
+
+---
+
+## Documentation and support
+
+- Full setup and usage guide: [Sesamy WordPress Plugin Documentation](https://developers.sesamy.com/integrations/cms/wordpress.html)
+- Bug reports and questions: https://support.sesamy.com
+- Source: https://github.com/sesamyab/wordpress-sesamy-2

@@ -10,7 +10,8 @@
   },
   "require": {
     "php": ">=8.3",
-    "firebase/php-jwt": "6.4"
+    "firebase/php-jwt": "6.4",
+    "sesamy/capsule-publisher": "dev-main"
   },
   "require-dev": {
     "10up/phpcs-composer": "^3.0",

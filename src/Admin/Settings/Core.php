@@ -8,6 +8,7 @@
 namespace SesamyPlugin\Admin\Settings;
 
 use function SesamyPlugin\Helpers\get_enabled_post_types;
+use function SesamyPlugin\Helpers\is_local_install;
 use function SesamyPlugin\Helpers\is_sesamy_connected;
 
 /**
@@ -75,6 +76,9 @@ class Core {
 							'development_mode'      => [
 								'type' => 'boolean',
 							],
+							'use_first_party_proxy' => [
+								'type' => 'boolean',
+							],
 						],
 					],
 				],
@@ -123,6 +127,7 @@ class Core {
 					$sanitized_input[ $key ] = array_map( 'sanitize_text_field', (array) $value );
 					break;
 				case 'development_mode':
+				case 'use_first_party_proxy':
 					$sanitized_input[ $key ] = rest_sanitize_boolean( $value );
 					break;
 				default:
@@ -141,6 +146,38 @@ class Core {
 	 * @return void
 	 */
 	public function add_sesamy_setting_fields() {
+		$settings_page_view = new \SesamyPlugin\Admin\View\SettingsPage();
+
+		// "Pre-connect" section — fields that need to be reachable before the
+		// publisher has linked their Sesamy account (so the operator can pick
+		// the right cluster before triggering Connect). Rendered separately
+		// from the main `section_advanced` block in `SettingsPage::admin_page`.
+		add_settings_section(
+			'section_pre_connect',
+			'',
+			[ $settings_page_view, 'section_general_callback' ],
+			'sesamy'
+		);
+
+		// Switches every Sesamy URL from `.com` to `.dev` (`api2.sesamy.dev`,
+		// `auth2.sesamy.dev`, `scripts.sesamy.dev`, …). Must be settable before
+		// Connect because Connect needs to know which cluster to target.
+		// Hidden on non-local installs — production publishers should never
+		// need it, and surfacing it would invite accidental flips.
+		if ( is_local_install() ) {
+			add_settings_field(
+				'development_mode',
+				__( 'Development mode', 'sesamy' ),
+				[ $settings_page_view, 'settings_render_checkbox' ],
+				'sesamy',
+				'section_pre_connect',
+				[
+					'name'      => 'development_mode',
+					'label_for' => __( 'Use Sesamy `.dev` cluster instead of production. Reconnect after toggling.', 'sesamy' ),
+				]
+			);
+		}
+
 		// Settings UI is only meaningful once the publisher has linked their
 		// Sesamy account — the paywall list and lock behaviour both depend on
 		// the connected client.
@@ -148,12 +185,21 @@ class Core {
 			return;
 		}
 
-		$settings_page_view = new \SesamyPlugin\Admin\View\SettingsPage();
-
 		add_settings_section(
 			'section_general',
 			'',
 			[ $settings_page_view, 'section_general_callback' ],
+			'sesamy'
+		);
+
+		// Advanced section is rendered inside a collapsible `<details>` in
+		// `SettingsPage::admin_page()`; keeping it as its own section lets
+		// us reuse the standard `do_settings_fields()` rendering inside the
+		// fold-out block.
+		add_settings_section(
+			'section_advanced',
+			'',
+			[ $settings_page_view, 'section_advanced_callback' ],
 			'sesamy'
 		);
 
@@ -169,22 +215,6 @@ class Core {
 		);
 
 		add_settings_field(
-			'lock_mode',
-			__( 'Lock Mode', 'sesamy' ),
-			[ $settings_page_view, 'settings_render_selectfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'    => 'lock_mode',
-				'options' => [
-					'encode' => 'Encode',
-					'embed'  => 'Embed',
-					// 'proxy'  => 'Proxy', TODO: Add proxy support
-				],
-			]
-		);
-
-		add_settings_field(
 			'default_paywall',
 			__( 'Default Paywall', 'sesamy' ),
 			[ $settings_page_view, 'settings_render_paywall_select' ],
@@ -193,6 +223,46 @@ class Core {
 			[
 				'name'      => 'default_paywall',
 				'label_for' => 'default_paywall',
+			]
+		);
+
+		add_settings_field(
+			'default_pass',
+			__( 'Default Pass', 'sesamy' ),
+			[ $settings_page_view, 'settings_render_pass_select' ],
+			'sesamy',
+			'section_general',
+			[
+				'name'      => 'default_pass',
+				'label_for' => 'default_pass',
+			]
+		);
+
+		add_settings_field(
+			'lock_mode',
+			__( 'Lock Mode', 'sesamy' ),
+			[ $settings_page_view, 'settings_render_selectfield' ],
+			'sesamy',
+			'section_advanced',
+			[
+				'name'    => 'lock_mode',
+				'options' => [
+					'capsule' => 'Server-side encryption',
+					'embed'   => 'Embed',
+					'encode'  => 'Encode',
+				],
+			]
+		);
+
+		add_settings_field(
+			'use_first_party_proxy',
+			__( 'First-party proxy', 'sesamy' ),
+			[ $settings_page_view, 'settings_render_checkbox' ],
+			'sesamy',
+			'section_advanced',
+			[
+				'name'      => 'use_first_party_proxy',
+				'label_for' => __( 'Route Sesamy auth and API traffic through this domain (recommended).', 'sesamy' ),
 			]
 		);
 	}

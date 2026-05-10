@@ -29,11 +29,16 @@
     "@commitlint/config-conventional": "19.8.0",
     "@wordpress/env": "^11.4.0",
     "commit-and-tag-version": "12.5.1",
+    "eslint": "^8.57.1",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-airbnb-base": "^15.0.0",
     "husky": "9.1.7",
     "jest-environment-jsdom": "29.7.0",
-    "lint-staged": "15.5.0"
+    "lint-staged": "15.5.0",
+    "prettier": "^3.1.1"
   },
   "dependencies": {
+    "@sesamy/sesamy-js": "1.120.2",
     "@wordpress/api-fetch": "^7.20.0",
     "@wordpress/components": "^29.6.0",
     "@wordpress/data": "^10.20.0",
@@ -46,7 +51,8 @@
     "devURL": "http://127.0.0.1:8888",
     "entry": {
       "admin": "./assets/js/admin.js",
-      "post-settings": "./assets/js/post-settings.js"
+      "post-settings": "./assets/js/post-settings.js",
+      "sesamy": "./assets/js/sesamy.js"
     }
   },
   "commit-and-tag-version": {

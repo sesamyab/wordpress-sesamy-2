@@ -71,7 +71,7 @@ The WP plugin's admin UI is deliberately minimal. No complex per-post plan picke
 |---|---|---|
 | Member (WP user row) | Sesamy identity (no WP user by default) | Stage 6 offers opt-in shadow users |
 | Plan / Product | Sesamy product / entitlement | Same concept, different namespace |
-| Post ACL (`memberful_acl` postmeta) | Capsule region + paywall strategy match | Decision lives in Sesamy, not WP |
+| Post ACL (`memberful_acl` postmeta) | Locked post + paywall strategy match | Decision lives in Sesamy, not WP |
 | Term ACL | Paywall strategy with category/tag signal | Same pattern, centralized |
 | "Any registered user" / "any subscriber" wildcards | Paywall strategy rule | Simpler model, more expressive |
 | Marketing content per post/term/global | Paywall rendering from Sesamy strategy response | Can still be per-post via override |
@@ -80,7 +80,7 @@ The WP plugin's admin UI is deliberately minimal. No complex per-post plan picke
 | Mapping table (member_id ↔ wp_user_id) | Only if shadow users enabled | Optional, Stage 6 |
 | Private per-user RSS feed | Private per-user RSS feed | Direct match |
 | Memberful-hosted podcasts | Sesamy-hosted podcasts | Direct match |
-| Gutenberg visibility attributes on every block | Gutenberg `sesamy/capsule-region` wrapper block | Explicit wrapper vs attribute injection |
+| Gutenberg visibility attributes on every block | Post-level locking via the WordPress `<!--more-->` block + per-post metabox | Reuses native WP convention; backwards compatible with existing more-block content |
 | Classic-editor TinyMCE button | Same, for Sesamy shortcodes | Minor, covers Classic Editor holdouts |
 | Third-party requests to `memberful.com` | Optional first-party proxying | **New capability Memberful doesn't have** |
 | Ad provider suppression | Same, for Raptive/Mediavine/Advanced Ads | Only if specific publishers need it |
@@ -152,10 +152,10 @@ The WP plugin's admin UI is deliberately minimal. No complex per-post plan picke
 
 **Deliverables:**
 
-- PHP implementation of the Capsule encrypt side (library from Sesamy, or implement against the spec)
-- Gutenberg block `sesamy/capsule-region` — a wrapper block containing the gated inner content. Shows a lock icon in the editor preview; renders encrypted ciphertext + teaser on the frontend
-- Shortcode equivalent `[sesamy_capsule]...[/sesamy_capsule]` for Classic Editor users
-- `save_post` hook that walks the block tree and pre-encrypts capsule regions, storing ciphertext alongside (or replacing) the plaintext in `post_content`
+- PHP implementation of the Capsule encrypt side (library from Sesamy, or implement against the spec) — Capsule is the underlying protocol; never named in publisher-facing UI
+- Post-level locking using the WordPress `<!--more-->` block as the gate: content above the more tag is the public teaser, content below is the locked region. Backwards compatible — posts already authored with the more block work without re-tagging
+- Per-post locking metabox toggling `_sesamy_locked` and the required entitlement level. Labels read "Locked content" / "Unlock requirement" — no protocol naming
+- `save_post` hook that splits `post_content` at the more tag and pre-encrypts the locked portion, storing ciphertext in `post_content` and plaintext in `_sesamy_locked_plaintext` postmeta for subsequent edits
 - Issuer public key fetching, caching in `wp_options`, refetch on webhook trigger
 - **Client JS enqueueing with configurable endpoint resolution.** The Capsule client reads its API base URL from a global set by the plugin (via `wp_localize_script`), which itself comes from `sesamy_url()`. Direct mode → `api.sesamy.com`. Proxied mode (Stage 2.5) → `/sesamy/api`. No code changes to the client between modes.
 - Teaser rendering — configurable via filter, default is "first N words" of the encrypted region
@@ -166,10 +166,11 @@ The WP plugin's admin UI is deliberately minimal. No complex per-post plan picke
 
 **Key decisions:**
 
-- **When to encrypt.** At `save_post`, not at render time. This means `post_content` is stored already-encrypted in the database. Keep plaintext in `_sesamy_capsule_plaintext_{region_id}` postmeta for subsequent edits and regenerate ciphertext on every save.
+- **When to encrypt.** At `save_post`, not at render time. The locked portion of `post_content` is stored already-encrypted in the database. Plaintext is kept in `_sesamy_locked_plaintext` postmeta for subsequent edits and ciphertext is regenerated on every save.
 - **Atomic save.** If encryption fails mid-save (e.g., issuer public key unreachable), the save must abort cleanly.
-- **Teaser extraction.** Publishers can explicitly mark what's in the teaser by putting content outside the capsule region. Auto-extract first N words otherwise.
+- **Teaser extraction.** The portion above the `<!--more-->` block is the teaser. Publishers control the split point by where they place the more tag — same model they already know.
 - **SEO meta.** The teaser is what ends up in `og:description`, Twitter cards, meta description — not the full content. Hook into Yoast/Rank Math/SEOPress or provide defaults.
+- **No `[sesamy_capsule]` shortcode, no `sesamy/capsule-region` block.** The more-block + metabox is the only locking surface. "Capsule" is an implementation detail and stays out of publisher-facing labels.
 
 ### Stage 2 — Signals and strategy integration (weeks 6–7)
 
@@ -177,9 +178,9 @@ The WP plugin's admin UI is deliberately minimal. No complex per-post plan picke
 
 **Deliverables:**
 
-- Rich context metadata embedded in the capsule region's DCA element: post ID, slug, type, publish date, authors, word count, categories, tags, custom taxonomies, featured-image flag, video/audio flags
+- Rich context metadata embedded in the locked content payload: post ID, slug, type, publish date, authors, word count, categories, tags, custom taxonomies, featured-image flag, video/audio flags
 - Custom taxonomy `sesamy_paywall_tag` for publishers who want paywall-specific tags separate from regular content tags
-- Filter `sesamy_capsule_context` so publishers can add custom signals (ACF fields, SCF fields, custom taxonomies)
+- Filter `sesamy_lock_context` so publishers can add custom signals (ACF fields, SCF fields, custom taxonomies). Name is impl-agnostic — it describes the locked post's signal envelope, not the underlying encryption protocol
 - Post edit screen panel showing which Sesamy strategy would currently match this post, fetched live from Sesamy (read-only, admin-side only)
 - Per-post override metabox: `never_gate` / `use_strategy` / `always_gate` radio. Defaults to `use_strategy`.
 - Request-time signals added to the client-side unseal request: referer, UTM params, `?unlock_token=...` for campaign-based unlocks
@@ -190,7 +191,7 @@ The WP plugin's admin UI is deliberately minimal. No complex per-post plan picke
 **Key decisions:**
 
 - **Custom taxonomy vs regular tags.** Offer both. Dedicated `sesamy_paywall_tag` for paywall-only tagging; regular tags for editorial tagging tied to strategies.
-- **Signal schema versioning.** Include `signals_version` in the DCA metadata so we can evolve the schema without breaking old posts.
+- **Signal schema versioning.** Include `signals_version` in the payload metadata so we can evolve the schema without breaking old posts.
 - **Live strategy preview.** Admin-side only. Cache for 60 seconds. Fail silently if Sesamy is slow — not a blocker for saving the post.
 
 ### Stage 2.5 — Same-domain proxying (weeks 7–9, overlaps Stage 2/3)
@@ -327,8 +328,8 @@ The WP plugin's admin UI is deliberately minimal. No complex per-post plan picke
 
 **Key decisions:**
 
-- **Private RSS feeds deliver plaintext content**, not Capsule-encrypted. The tokenized URL is the entitlement check; podcast players can't decrypt Capsule.
-- **Comments inside vs outside Capsule regions.** Offer both via block placement.
+- **Private RSS feeds deliver plaintext content**, not encrypted. The tokenized URL is the entitlement check; podcast players can't decrypt locked content.
+- **Comments above vs below the more tag.** Comments placed above the more block are public; placed below they're part of the locked region. Default theme placement is above (public).
 
 ### Stage 5 — Optional integrations (weeks 13–14, parallel work)
 
@@ -467,34 +468,39 @@ All client-side-aware — read from data attribute set by client JS after sessio
 
 **Shadow users (Stage 6):** matches Memberful's model with the safeguards listed above.
 
-### 5.4 Content locking (Capsule integration)
+### 5.4 Content locking
 
-**Gutenberg block `sesamy/capsule-region`:**
+Locking is **post-level**, controlled by two pieces of state the publisher already understands:
+
+1. The native WordPress `<!--more-->` block, which marks the boundary between teaser (above) and locked content (below).
+2. A per-post metabox toggle (`_sesamy_locked`) plus an entitlement level (`_sesamy_access_level`).
+
+If the toggle is off, the post renders normally — the more tag behaves as it always did. If the toggle is on, content below the more tag is encrypted on save and the frontend renders teaser + paywall.
+
+**No dedicated locking block, no `[sesamy_capsule]` shortcode, no protocol-named UI.** The implementation uses the Capsule encryption protocol under the hood, but publishers never see that name in their editor, metabox, or settings.
+
+**Per-post locking metabox (sidebar):**
 
 ```
-Block inspector panel:
-  - Region label
-  - Teaser mode: none / first N words / explicit block before this one
-  - Teaser length (first-N-words mode)
-
-Block toolbar:
-  - Visual lock indicator in editor
-  - "Preview encrypted output" button
-
-Save behavior:
-  - Plaintext → _sesamy_capsule_plaintext_{uuid} postmeta
-  - Ciphertext + DCA metadata → serialized block HTML
-  - Re-encrypt on every save
+- Lock content below the "Read more" tag  [toggle]
+- Required entitlement                      [select: any signed-in / specific entitlement]
+- Override paywall strategy                 [optional, see §5.5]
 ```
 
-**Render output:**
+**Save behavior:**
+
+- Split `post_content` at the `<!--more-->` block
+- Public portion stays as plaintext in `post_content`
+- Locked portion is encrypted via the Capsule protocol; ciphertext + DCA metadata replace the locked section in `post_content`; plaintext is kept in `_sesamy_locked_plaintext` postmeta for editing
+- Re-encrypt on every save
+- If `_sesamy_locked` is off, no transformation — `post_content` stays as written
+
+**Render output (when locked):**
 
 ```html
-<div class="sesamy-capsule" data-capsule-id="abc123">
-  <div class="sesamy-teaser">
-    <!-- First 100 words of plaintext or nothing -->
-  </div>
-  <template class="sesamy-capsule-payload">
+<!-- Public teaser (above the more tag), unchanged from author input -->
+<div class="sesamy-locked" data-post-id="12345">
+  <template class="sesamy-locked-payload">
     <!-- DCA: sealed_keys, ciphertext, metadata, integrity_proof -->
   </template>
   <div class="sesamy-paywall" data-state="locked">
@@ -505,14 +511,14 @@ Save behavior:
 
 **Client JS responsibility:**
 
-1. Find `.sesamy-capsule` elements
-2. Read DCA metadata and sealed keys from `<template>`
+1. Find `.sesamy-locked` elements
+2. Read sealed keys and ciphertext from `<template>`
 3. Check session state — via `sesamy_url('session', 'api')`
-4. Request unsealing — via `sesamy_url('capsule/unseal', 'api')`
+4. Request unsealing — via `sesamy_url('capsule/unseal', 'api')` (internal API path; user-facing URL is `/sesamy/api/...` in proxied mode)
 5. On success: decrypt in-browser, replace paywall div with content
 6. On failure: keep paywall div, show appropriate message
 
-**Classic editor shortcode:** `[sesamy_capsule teaser_mode="first_n_words" teaser_length="100"]...inner content...[/sesamy_capsule]`
+**Classic Editor:** the more tag works in Classic Editor too, so locking is fully supported there without a separate shortcode path.
 
 ### 5.5 Editor tools
 
@@ -524,11 +530,11 @@ Save behavior:
   - Sesamy paywall tags field
   - Link to "Edit paywall strategies in Sesamy dashboard"
 - **"Preview as reader"** button
-- **Capsule region status bar** in block editor
+- **Locked content indicator** in block editor — shown when the post is marked locked and a `<!--more-->` block is present; warns if locked is on but no more tag exists
 
 **Posts list:**
 
-- "Gating status" column showing capsule regions presence and matched strategy
+- "Gating status" column showing whether the post is locked, whether a `<!--more-->` block is present, and the matched strategy
 
 ### 5.6 Custom tags and signals
 
@@ -536,7 +542,7 @@ Save behavior:
 
 **Secondary: dedicated `sesamy_paywall_tag` taxonomy.** For keeping paywall logic separate from editorial tagging.
 
-**Signals per post (in capsule region's DCA metadata):**
+**Signals per post (in the locked content payload metadata):**
 
 ```json
 {
@@ -569,7 +575,7 @@ Save behavior:
 }
 ```
 
-Extensible via `sesamy_capsule_context` filter.
+Extensible via `sesamy_lock_context` filter.
 
 ### 5.7 Shortcodes
 
@@ -582,22 +588,21 @@ Extensible via `sesamy_capsule_context` filter.
 - `[sesamy_if_not_authenticated]...[/sesamy_if_not_authenticated]`
 - `[sesamy_buy_link product="monthly" label="Subscribe"]`
 - `[sesamy_private_rss_feed_link category="premium"]`
-- `[sesamy_capsule]...[/sesamy_capsule]`
 
 **Memberful compatibility aliases (Stage 3).** All Memberful shortcodes registered as aliases that translate to Sesamy equivalents.
 
 ### 5.8 Blocks
 
-**Primary:** `sesamy/capsule-region`
+**No dedicated locking block.** Post-level locking uses the native WordPress `<!--more-->` block as the gate; the per-post metabox controls whether locking is active and at what entitlement level. This preserves backwards compatibility with existing more-block content and avoids exposing protocol-level naming to publishers.
 
-**Secondary:**
+**Helper blocks:**
 
 - `sesamy/sign-in-link`
 - `sesamy/account-link`
-- `sesamy/if-entitled` — container-only, not paywall-safe
+- `sesamy/if-entitled` — container-only, not paywall-safe (visibility helper for already-public content; not a substitute for locking)
 - `sesamy/paywall-cta`
 
-**Deliberately not doing:** block-level visibility attribute injection on every block (Memberful's pattern). Explicit wrapper blocks are clearer and don't pollute block attribute schemas.
+**Deliberately not doing:** block-level visibility attribute injection on every block (Memberful's pattern), and no `sesamy/capsule-region` wrapper block. The more-block + metabox model is the only locking surface.
 
 ### 5.9 Hooks and filters
 
@@ -606,8 +611,8 @@ Extensible via `sesamy_capsule_context` filter.
 ```
 sesamy_connected
 sesamy_disconnected
-sesamy_before_encrypt_capsule
-sesamy_after_encrypt_capsule
+sesamy_before_lock_post
+sesamy_after_lock_post
 sesamy_webhook_received
 sesamy_strategy_match_changed
 sesamy_routing_mode_changed
@@ -616,8 +621,8 @@ sesamy_routing_mode_changed
 **Filters:**
 
 ```
-sesamy_capsule_context
-sesamy_capsule_teaser
+sesamy_lock_context
+sesamy_lock_teaser
 sesamy_paywall_html
 sesamy_client_js_url
 sesamy_issuer_url
@@ -788,7 +793,7 @@ Same logic as `wp sesamy proxy test` CLI command.
 2. **Analysis phase (dry run).** Read all Memberful data, cluster ACL patterns, suggest Sesamy strategies, show preview.
 3. **Strategy creation.** Create suggested strategies in Sesamy with publisher approval.
 4. **Post tagging.** Apply `sesamy_paywall_tag` terms based on existing `memberful_acl` config. Non-matching ACLs get `sesamy_override = always_gate`.
-5. **Capsule region conversion.** Wrap post content in `sesamy/capsule-region` blocks, encrypt.
+5. **Locked post conversion.** For each post that had Memberful gating, mark `_sesamy_locked = true` and ensure a `<!--more-->` block exists at the appropriate split point (insert at top if the publisher gated the entire post; preserve existing more-tag position otherwise). Encrypt on save.
 6. **Marketing content migration.** Transfer `memberful_marketing_content` to per-strategy Sesamy templates or per-post override copy.
 7. **User migration (shadow users only).** Copy `{prefix}_memberful_mapping` rows into `{prefix}_sesamy_mapping`, translate member IDs via email lookup.
 8. **Private RSS token preservation.** Copy feed tokens so existing subscribed URLs keep working.
@@ -820,7 +825,7 @@ For 10k+ posts or 100k+ members:
 1. **Does Sesamy publish a PHP Capsule library, or do we build one against the spec?** Affects Stage 1.
 2. **Key rotation cadence.** How often do issuer keys rotate in practice?
 3. **Multi-issuer support.** Single WP site connecting to multiple Sesamy issuers?
-4. **Preview/draft posts.** Authenticated editors see plaintext via `_sesamy_capsule_plaintext_*`. Shared preview tokens gate on the token itself.
+4. **Preview/draft posts.** Authenticated editors see plaintext via `_sesamy_locked_plaintext`. Shared preview tokens gate on the token itself.
 5. **Non-block editor support.** How many publishers are on Classic Editor only? Affects Stage 1 shortcode priority.
 6. **Compliance and audit.** Publishers needing audit logs? Sesamy-side feature; WP contributes request context.
 7. **Multisite.** Any publisher on WP multisite? May move Stage 6 multisite support earlier.
@@ -836,7 +841,7 @@ For 10k+ posts or 100k+ members:
 | Stage | Weeks | Deliverable | Ship criterion |
 |---|---|---|---|
 | 0 | 1–2 | Connection flow, credentials, URL routing helper | Publisher connects and disconnects cleanly |
-| 1 | 3–5 | Capsule encryption, Gutenberg block, client JS, paywall | Publisher gates an article; subscriber reads it |
+| 1 | 3–5 | Post-level locking via more-block + metabox, encryption under the hood, client JS, paywall | Publisher locks an article; subscriber reads it |
 | 2 | 6–7 | Signals, paywall tags, override metabox, strategy preview | Publisher tags posts; sees which strategy matches |
 | 2.5 | 7–9 | Proxy modes (WP, CF Worker), cache compat, diagnostic | Publisher switches to first-party proxying |
 | 3 | 10 | Memberful shortcode/function/block-attr compat, importer | Memberful publisher runs importer; site works |

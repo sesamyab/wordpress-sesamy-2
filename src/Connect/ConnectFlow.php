@@ -8,6 +8,7 @@
 namespace SesamyPlugin\Connect;
 
 use function SesamyPlugin\Helpers\get_sesamy_connection;
+use function SesamyPlugin\Helpers\get_sesamy_setting;
 use function SesamyPlugin\Helpers\sesamy_url;
 
 /**
@@ -90,7 +91,11 @@ class ConnectFlow {
 		// contains `?` and `&` which would bleed into the parent URL on the
 		// AuthHero side, so build the query string with PHP's
 		// `http_build_query` which encodes values correctly.
-		$authorize_url = sesamy_url( 'connect/start', 'auth' ) . '?' . http_build_query(
+		// Admin-only browser redirect: bypass the proxy. AuthHero's consent
+		// screen lives on `auth2.sesamy.com` and does its own internal
+		// redirects regardless of where this first hop lands, so proxying
+		// just adds a round-trip and a confusing URL in the address bar.
+		$authorize_url = sesamy_url( 'connect/start', 'auth', true ) . '?' . http_build_query(
 			[
 				'integration_type' => 'wordpress',
 				'domain'           => $domain,
@@ -181,11 +186,33 @@ class ConnectFlow {
 			'tenant'                    => $tenant,
 			'integration_type'          => 'wordpress',
 			'domain'                    => $domain,
+			// Bind the cluster to the connection. Without this, flipping
+			// `development_mode` after connect (or it being off at connect
+			// time on a host the local-install heuristic doesn't recognise)
+			// sends subsequent token/API requests to the wrong cluster and
+			// AuthHero replies "Client not found".
+			'environment'               => get_sesamy_setting( 'development_mode' ) ? 'dev' : 'prod',
 			'connected_at'              => time(),
 			'connected_by'              => get_current_user_id(),
 		];
 
 		update_option( self::OPTION, $connection, false );
+
+		// Seed routing config on first connect so reader auth/api traffic
+		// flows through the publisher's domain (first-party). Only set if the
+		// option does not already exist — preserves any prior choice across
+		// disconnect/reconnect cycles.
+		if ( false === get_option( 'sesamy_routing' ) ) {
+			update_option(
+				'sesamy_routing',
+				[
+					'mode'            => 'wordpress_proxy',
+					'proxy_base_path' => '/sesamy',
+				],
+				false
+			);
+			flush_rewrite_rules();
+		}
 
 		$this->finish_complete( 'connected' );
 	}

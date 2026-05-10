@@ -39,11 +39,14 @@ class PluginCore {
 		\SesamyPlugin\Admin\View\ReleaseNotice::init();
 		\SesamyPlugin\Admin\View\SettingsPage::init();
 		\SesamyPlugin\Api\Rest::init();
+		\SesamyPlugin\Capsule\Jwks::init();
+		\SesamyPlugin\Capsule\Registration::init();
 		\SesamyPlugin\Connect\ConnectFlow::init();
 		\SesamyPlugin\Core\Assets::init();
 		\SesamyPlugin\Frontend\ContentContainer::init();
 		\SesamyPlugin\Frontend\Login::init();
 		\SesamyPlugin\Frontend\Meta::init();
+		\SesamyPlugin\Proxy\Router::init();
 	}
 
 	/**

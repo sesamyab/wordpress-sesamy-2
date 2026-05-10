@@ -38,8 +38,17 @@ class AuthHeroClient {
 	public static function register( $iat, $client_name, $tenant = '' ) {
 		$body = wp_json_encode(
 			[
+				'client_id'   => 'dcr',
 				'client_name' => $client_name,
 				'grant_types' => [ 'client_credentials' ],
+				'audience'    => 'urn:sesamy',
+				// `domains:read` / `domains:write` are required for the
+				// publisher-registration flow at `/management/domains/*`. New
+				// installs get them on first connect; existing installs need
+				// to disconnect/reconnect to re-run DCR with the expanded
+				// scope set (the access token cached today won't carry the
+				// new claims either way).
+				'scope'       => 'paywalls:read products:read domains:read domains:write',
 			]
 		);
 		if ( false === $body ) {
@@ -56,7 +65,8 @@ class AuthHeroClient {
 		}
 
 		$response = wp_remote_post(
-			sesamy_url( 'oidc/register', 'auth' ),
+			// Server-to-server: bypass the proxy and hit AuthHero directly.
+			sesamy_url( 'oidc/register', 'auth', true ),
 			[
 				'timeout'   => self::TIMEOUT,
 				'sslverify' => true,

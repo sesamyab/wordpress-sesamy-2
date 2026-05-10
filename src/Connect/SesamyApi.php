@@ -9,6 +9,7 @@
 namespace SesamyPlugin\Connect;
 
 use function SesamyPlugin\Helpers\get_sesamy_connection;
+use function SesamyPlugin\Helpers\get_sesamy_environment;
 use function SesamyPlugin\Helpers\sesamy_url;
 
 /**
@@ -20,11 +21,6 @@ class SesamyApi {
 	 * Default request timeout in seconds.
 	 */
 	private const TIMEOUT = 10;
-
-	/**
-	 * Audience for management-API access tokens.
-	 */
-	private const AUDIENCE = 'urn:sesamy';
 
 	/**
 	 * Transient key holding the cached access token.
@@ -54,28 +50,31 @@ class SesamyApi {
 			return new \WP_Error( 'sesamy_not_connected', 'Sesamy is not connected.' );
 		}
 
-		$body = wp_json_encode(
-			[
-				'grant_type'    => 'client_credentials',
-				'client_id'     => (string) $connection['client_id'],
-				'client_secret' => (string) $connection['client_secret'],
-				'audience'      => self::AUDIENCE,
-			]
-		);
-		if ( false === $body ) {
-			return new \WP_Error( 'sesamy_token_encode_failed', 'Failed to encode token request.' );
-		}
-
-		$headers = [
-			'Content-Type' => 'application/json',
+		// RFC 6749 §3.2 mandates form-urlencoded at the token endpoint.
+		// AuthHero rejects the JSON variant with a generic 403, which surfaces
+		// as "Client not found" because tenant routing falls through. Sending
+		// `tenant-id` alongside `client_id` would also break: AuthHero
+		// resolves the client in the named tenant first and replies the same
+		// way when it isn't there. Audience is omitted — the management API
+		// accepts the unscoped token issued without it (matches the curl
+		// recipe in the AuthHero docs).
+		// The token endpoint lives on its own subdomain (`token.sesamy.{tld}`),
+		// distinct from the OIDC/AuthHero host (`auth2.sesamy.{tld}`) used for
+		// `/oidc/register` during connect.
+		$tld       = 'dev' === get_sesamy_environment() ? 'dev' : 'com';
+		$token_url = "https://token.sesamy.{$tld}/oauth/token";
+		$headers   = [
+			'Content-Type' => 'application/x-www-form-urlencoded',
 			'Accept'       => 'application/json',
 		];
-		if ( ! empty( $connection['tenant'] ) ) {
-			$headers['tenant-id'] = (string) $connection['tenant'];
-		}
+		$body      = [
+			'grant_type'    => 'client_credentials',
+			'client_id'     => (string) $connection['client_id'],
+			'client_secret' => (string) $connection['client_secret'],
+		];
 
 		$response = wp_remote_post(
-			sesamy_url( 'oauth/token', 'auth' ),
+			$token_url,
 			[
 				'timeout'   => self::TIMEOUT,
 				'sslverify' => true,
@@ -84,19 +83,49 @@ class SesamyApi {
 			]
 		);
 
+		// Default to a redacted curl. Aggregated logs may pick up these
+		// WP_Error messages, so we don't want the client_secret in there.
+		// Operators who need byte-for-byte verification can flip WP_DEBUG.
+		$reveal_secret = defined( 'WP_DEBUG' ) && WP_DEBUG;
+		$curl          = self::build_curl( $token_url, $headers, $body, $reveal_secret );
+
 		if ( is_wp_error( $response ) ) {
-			return $response;
+			return new \WP_Error(
+				$response->get_error_code(),
+				$response->get_error_message() . "\n\nEquivalent curl:\n" . $curl,
+				array_merge( (array) $response->get_error_data(), [ 'curl' => $curl ] )
+			);
 		}
 
 		$code    = wp_remote_retrieve_response_code( $response );
-		$decoded = json_decode( wp_remote_retrieve_body( $response ), true );
+		$raw     = (string) wp_remote_retrieve_body( $response );
+		$decoded = json_decode( $raw, true );
 
 		if ( $code < 200 || $code >= 300 || ! is_array( $decoded ) ) {
-			$message = is_array( $decoded ) ? ( $decoded['error_description'] ?? $decoded['error'] ?? '' ) : '';
-			if ( '' === $message ) {
-				$message = sprintf( 'Token request failed (HTTP %d).', (int) $code );
+			$parsed  = is_array( $decoded ) ? ( $decoded['error_description'] ?? $decoded['error'] ?? '' ) : '';
+			$message = '' !== $parsed
+				? $parsed
+				: sprintf( 'Token request failed (HTTP %d).', (int) $code );
+
+			// Always append the raw body when we couldn't extract a structured
+			// error — it's the only signal the operator has to figure out why
+			// AuthHero rejected the request. Not sensitive: it's the error
+			// response, not the token.
+			if ( '' === $parsed && '' !== $raw ) {
+				$message .= "\n\n" . substr( $raw, 0, 2000 );
 			}
-			return new \WP_Error( 'sesamy_token_failed', $message, [ 'status' => $code ] );
+
+			$message .= "\n\nEquivalent curl:\n" . $curl;
+
+			return new \WP_Error(
+				'sesamy_token_failed',
+				$message,
+				[
+					'status' => $code,
+					'body'   => $raw,
+					'curl'   => $curl,
+				]
+			);
 		}
 
 		$token = isset( $decoded['access_token'] ) ? (string) $decoded['access_token'] : '';
@@ -112,6 +141,38 @@ class SesamyApi {
 	}
 
 	/**
+	 * Build a copy-paste-runnable curl command equivalent to a token request.
+	 *
+	 * Used to surface the exact request shape on failure so the operator can
+	 * diff it against a known-good invocation. Each form field is rendered as
+	 * a separate `--data-urlencode` line (matching the AuthHero docs example)
+	 * so the secret stays readable rather than getting URL-encoded into one
+	 * blob.
+	 *
+	 * @param string                $url            Token endpoint URL.
+	 * @param array<string, string> $headers        Request headers.
+	 * @param array<string, string> $body           Form-encoded body fields.
+	 * @param bool                  $reveal_secret  When false, redact `client_secret` so the curl is safe for log aggregation.
+	 * @return string
+	 */
+	private static function build_curl( $url, $headers, $body, $reveal_secret = false ) {
+		$lines = [ "curl --location '" . $url . "' \\" ];
+		foreach ( $headers as $name => $value ) {
+			$lines[] = "  --header '" . $name . ': ' . $value . "' \\";
+		}
+		$last = array_key_last( $body );
+		foreach ( $body as $name => $value ) {
+			$rendered = ( ! $reveal_secret && 'client_secret' === $name ) ? '<redacted>' : $value;
+			$line     = "  --data-urlencode '" . $name . '=' . $rendered . "'";
+			if ( $name !== $last ) {
+				$line .= ' \\';
+			}
+			$lines[] = $line;
+		}
+		return implode( "\n", $lines );
+	}
+
+	/**
 	 * Fetch the publisher's paywalls from the management API.
 	 *
 	 * @return array<int, array<string, mixed>>|\WP_Error List of paywall objects.
@@ -123,7 +184,8 @@ class SesamyApi {
 		}
 
 		$response = wp_remote_get(
-			sesamy_url( 'management/paywalls', 'api' ),
+			// Server-to-server management call — bypass the proxy.
+			sesamy_url( 'management/paywalls', 'api', true ),
 			[
 				'timeout'   => self::TIMEOUT,
 				'sslverify' => true,
@@ -165,5 +227,72 @@ class SesamyApi {
 		}
 
 		return [];
+	}
+
+	/**
+	 * Fetch the publisher's passes from the management API.
+	 *
+	 * `/management/products` returns every product (passes, bundles,
+	 * licenses, …) with a `productType` discriminator. We narrow to
+	 * entries with `productType === 'pass'` for the pass picker on the
+	 * settings page. The product `sku` is used as the stable identifier
+	 * (stored in `default_pass`); `title` is the display label.
+	 *
+	 * @return array<int, array<string, mixed>>|\WP_Error List of pass objects.
+	 */
+	public static function get_passes() {
+		$token = self::get_access_token();
+		if ( is_wp_error( $token ) ) {
+			return $token;
+		}
+
+		$response = wp_remote_get(
+			// Server-to-server management call — bypass the proxy.
+			sesamy_url( 'management/products', 'api', true ),
+			[
+				'timeout'   => self::TIMEOUT,
+				'sslverify' => true,
+				'headers'   => [
+					'Authorization' => 'Bearer ' . $token,
+					'Accept'        => 'application/json',
+				],
+			]
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return $response;
+		}
+
+		$code    = wp_remote_retrieve_response_code( $response );
+		$decoded = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( 401 === (int) $code || 403 === (int) $code ) {
+			delete_transient( self::TOKEN_TRANSIENT );
+		}
+
+		if ( $code < 200 || $code >= 300 ) {
+			$message = is_array( $decoded ) ? ( $decoded['error_description'] ?? $decoded['error'] ?? '' ) : '';
+			if ( '' === $message ) {
+				$message = sprintf( 'Product list request failed (HTTP %d).', (int) $code );
+			}
+			return new \WP_Error( 'sesamy_products_failed', $message, [ 'status' => $code ] );
+		}
+
+		$products = [];
+		if ( is_array( $decoded ) && isset( $decoded[0] ) ) {
+			$products = $decoded;
+		} elseif ( is_array( $decoded ) && isset( $decoded['data'] ) && is_array( $decoded['data'] ) ) {
+			$products = $decoded['data'];
+		} elseif ( is_array( $decoded ) && isset( $decoded['products'] ) && is_array( $decoded['products'] ) ) {
+			$products = $decoded['products'];
+		}
+
+		$passes = [];
+		foreach ( $products as $product ) {
+			if ( is_array( $product ) && isset( $product['productType'] ) && 'pass' === (string) $product['productType'] ) {
+				$passes[] = $product;
+			}
+		}
+		return $passes;
 	}
 }
