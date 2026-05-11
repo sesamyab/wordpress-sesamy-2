@@ -22,32 +22,43 @@ const sesamyJsVersion = exactSemver(sesamyJsRange);
 
 fs.readFile(pluginFile, 'utf8', (err, data) => {
 	if (err) {
-		return console.error(err);
+		console.error(err);
+		process.exit(1);
 	}
 	let result = data;
 	// Update version in the header comment
-	result = result.replace(/(Version:\s+)([0-9]+\.[0-9]+\.[0-9]+)/, `$1${newVersion}`);
-	// Update version in the define constant
-	result = result.replace(
-		/(define\(\s*'SESAMY_PLUGIN_VERSION',\s*')([0-9]+\.[0-9]+\.[0-9]+)(')/,
-		`$1${newVersion}$3`,
-	);
+	const headerRe = /(Version:\s+)([0-9]+\.[0-9]+\.[0-9]+)/;
+	const defineRe = /(define\(\s*'SESAMY_PLUGIN_VERSION',\s*')([0-9]+\.[0-9]+\.[0-9]+)(')/;
+	if (!headerRe.test(result)) {
+		console.error(`Failed to match plugin header Version line in ${pluginFile}`);
+		process.exit(1);
+	}
+	if (!defineRe.test(result)) {
+		console.error(`Failed to match SESAMY_PLUGIN_VERSION define in ${pluginFile}`);
+		process.exit(1);
+	}
+	result = result.replace(headerRe, `$1${newVersion}`);
+	result = result.replace(defineRe, `$1${newVersion}$3`);
+
 	// Sync the pinned `@sesamy/sesamy-js` version so the bootstrap loader
 	// and the script-host chain stay in lockstep with the dep we resolved.
 	if (sesamyJsVersion) {
-		result = result.replace(
-			/(define\(\s*'SESAMY_JS_VERSION',\s*')([^']+)(')/,
-			`$1${sesamyJsVersion}$3`,
-		);
+		const jsRe = /(define\(\s*'SESAMY_JS_VERSION',\s*')([^']+)(')/;
+		if (!jsRe.test(result)) {
+			console.error(`Failed to match SESAMY_JS_VERSION define in ${pluginFile}`);
+			process.exit(1);
+		}
+		result = result.replace(jsRe, `$1${sesamyJsVersion}$3`);
 	}
 
-	fs.writeFile(pluginFile, result, 'utf8', (err) => {
-		if (err) return console.error(err);
+	fs.writeFile(pluginFile, result, 'utf8', (writeErr) => {
+		if (writeErr) {
+			console.error(writeErr);
+			process.exit(1);
+		}
 		console.log(`Plugin file updated to version ${newVersion}`);
 		if (sesamyJsVersion) {
 			console.log(`SESAMY_JS_VERSION set to ${sesamyJsVersion}`);
 		}
-		return true;
 	});
-	return true;
 });

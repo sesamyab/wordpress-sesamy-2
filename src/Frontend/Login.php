@@ -71,7 +71,6 @@ class Login {
 		if ( $this->rendered ) {
 			return $block_content;
 		}
-		$this->rendered = true;
 
 		$login_item = '<li class="wp-block-navigation-item sesamy-login-menu-item"><sesamy-login></sesamy-login></li>';
 
@@ -79,12 +78,14 @@ class Login {
 		$last_ul_pos = strrpos( $block_content, '</ul></ul>' );
 		if ( false !== $last_ul_pos ) {
 			// Nested <ul>: insert before the inner </ul>.
+			$this->rendered = true;
 			return substr_replace( $block_content, $login_item . '</ul></ul>', $last_ul_pos, strlen( '</ul></ul>' ) );
 		}
 
 		// Single <ul>: insert before the closing </ul>.
 		$last_ul_pos = strrpos( $block_content, '</ul>' );
 		if ( false !== $last_ul_pos ) {
+			$this->rendered = true;
 			return substr_replace( $block_content, $login_item . '</ul>', $last_ul_pos, strlen( '</ul>' ) );
 		}
 

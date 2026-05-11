@@ -23,7 +23,9 @@ class SesamyApi {
 	private const TIMEOUT = 10;
 
 	/**
-	 * Transient key holding the cached access token.
+	 * Transient key prefix holding the cached access token. The full key is
+	 * derived per connection by `token_transient_key()` so cached tokens
+	 * invalidate automatically across disconnect/reconnect cycles.
 	 */
 	private const TOKEN_TRANSIENT = 'sesamy_access_token';
 
@@ -40,14 +42,16 @@ class SesamyApi {
 	 * @return string|\WP_Error
 	 */
 	public static function get_access_token() {
-		$cached = get_transient( self::TOKEN_TRANSIENT );
-		if ( is_string( $cached ) && '' !== $cached ) {
-			return $cached;
-		}
-
 		$connection = get_sesamy_connection();
 		if ( ! is_array( $connection ) || empty( $connection['client_id'] ) || empty( $connection['client_secret'] ) ) {
 			return new \WP_Error( 'sesamy_not_connected', 'Sesamy is not connected.' );
+		}
+
+		$transient_key = self::token_transient_key( $connection );
+
+		$cached = get_transient( $transient_key );
+		if ( is_string( $cached ) && '' !== $cached ) {
+			return $cached;
 		}
 
 		// RFC 6749 §3.2 mandates form-urlencoded at the token endpoint.
@@ -84,9 +88,11 @@ class SesamyApi {
 		);
 
 		// Default to a redacted curl. Aggregated logs may pick up these
-		// WP_Error messages, so we don't want the client_secret in there.
-		// Operators who need byte-for-byte verification can flip WP_DEBUG.
-		$reveal_secret = defined( 'WP_DEBUG' ) && WP_DEBUG;
+		// WP_Error messages, so we never want the client_secret in there.
+		// Operators on a local box who need byte-for-byte verification can
+		// define `SESAMY_REVEAL_CLIENT_SECRET` to opt in explicitly — relying
+		// on WP_DEBUG isn't safe since it's enabled on staging too.
+		$reveal_secret = defined( 'SESAMY_REVEAL_CLIENT_SECRET' ) && SESAMY_REVEAL_CLIENT_SECRET;
 		$curl          = self::build_curl( $token_url, $headers, $body, $reveal_secret );
 
 		if ( is_wp_error( $response ) ) {
@@ -135,9 +141,33 @@ class SesamyApi {
 
 		$expires_in = isset( $decoded['expires_in'] ) ? (int) $decoded['expires_in'] : 0;
 		$ttl        = max( 60, $expires_in - self::TOKEN_TTL_MARGIN );
-		set_transient( self::TOKEN_TRANSIENT, $token, $ttl );
+		set_transient( $transient_key, $token, $ttl );
 
 		return $token;
+	}
+
+	/**
+	 * Build a connection-scoped transient key for the cached access token so
+	 * a disconnect/reconnect cycle (different client_id or client_secret)
+	 * never serves the previous client's token.
+	 *
+	 * @param array<string, mixed> $connection Connection bundle from `get_sesamy_connection()`.
+	 */
+	private static function token_transient_key( array $connection ): string {
+		$identity = ( $connection['client_id'] ?? '' ) . '|' . ( $connection['client_secret'] ?? '' );
+		return self::TOKEN_TRANSIENT . '_' . substr( hash( 'sha256', $identity ), 0, 32 );
+	}
+
+	/**
+	 * Drop the cached access token for the currently-connected client. Called
+	 * by callers that received a 401/403 from the management API so the next
+	 * call mints a fresh token.
+	 */
+	public static function invalidate_cached_token(): void {
+		$connection = get_sesamy_connection();
+		if ( is_array( $connection ) ) {
+			delete_transient( self::token_transient_key( $connection ) );
+		}
 	}
 
 	/**
@@ -204,7 +234,7 @@ class SesamyApi {
 		$decoded = json_decode( wp_remote_retrieve_body( $response ), true );
 
 		if ( 401 === (int) $code || 403 === (int) $code ) {
-			delete_transient( self::TOKEN_TRANSIENT );
+			self::invalidate_cached_token();
 		}
 
 		if ( $code < 200 || $code >= 300 ) {
@@ -267,7 +297,7 @@ class SesamyApi {
 		$decoded = json_decode( wp_remote_retrieve_body( $response ), true );
 
 		if ( 401 === (int) $code || 403 === (int) $code ) {
-			delete_transient( self::TOKEN_TRANSIENT );
+			self::invalidate_cached_token();
 		}
 
 		if ( $code < 200 || $code >= 300 ) {

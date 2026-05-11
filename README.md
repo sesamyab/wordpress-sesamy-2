@@ -315,7 +315,7 @@ The bundled `@sesamy/sesamy-js` version is pinned in `sesamy2.php` (`SESAMY_JS_V
 
 ## Project structure
 
-```
+```text
 sesamy2.php                # Plugin entry point and bootstrap
 src/
   Admin/Settings/Core.php  # Plugin settings registration + sanitization

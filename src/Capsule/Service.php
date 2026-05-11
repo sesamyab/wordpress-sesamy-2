@@ -254,6 +254,26 @@ class Service {
 			'created_at'              => time(),
 		];
 
+		// Use add_option as the atomic first-write: if the option doesn't
+		// exist, this writes our bundle and returns true. If a concurrent
+		// request already wrote one, add_option returns false and we use the
+		// winner's bundle instead so all callers converge on a single key set.
+		if ( add_option( self::OPTION, $bundle, '', false ) ) {
+			return $bundle;
+		}
+
+		$winner = get_option( self::OPTION );
+		if ( is_array( $winner ) && self::keys_complete( $winner ) ) {
+			/**
+			 * Persisted publisher keypair bundle written by the winning race participant.
+			 *
+			 * @var array{signing_private_key_pem: string, signing_public_key_pem: string, signing_key_id: string, rotation_secret: string, created_at: int} $winner
+			 */
+			return $winner;
+		}
+
+		// Stored bundle is incomplete (corrupted). Overwrite with the fresh
+		// one we just generated.
 		update_option( self::OPTION, $bundle, false );
 		return $bundle;
 	}
@@ -364,11 +384,17 @@ class Service {
 			}
 
 			foreach ( [ 'current', 'next' ] as $slot ) {
-				$kid = $rotation[ $slot ]['kid'];
-				$w   = \Sesamy\Capsule\Publisher\Dca\Rotation::deriveWrapKey( $secret, $scope, $kid );
-				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- base64url transport encoding for the wrap key fingerprint.
-				$b64     = rtrim( strtr( base64_encode( $w ), '+/', '-_' ), '=' );
-				$lines[] = sprintf( 'wrapKey %-4s %s: %s (sha256-prefix=%s)', $slot, $kid, $b64, substr( hash( 'sha256', $w ), 0, 16 ) );
+				$kid     = $rotation[ $slot ]['kid'];
+				$w       = \Sesamy\Capsule\Publisher\Dca\Rotation::deriveWrapKey( $secret, $scope, $kid );
+				$fp      = substr( hash( 'sha256', $w ), 0, 16 );
+				$lines[] = sprintf( 'wrapKey %-4s %s: sha256-prefix=%s', $slot, $kid, $fp );
+				// Log the full derived key server-side when needed for debugging
+				// parity with the JS publisher; never emit it to clients.
+				if ( defined( 'SESAMY_DEBUG' ) && SESAMY_DEBUG ) {
+					// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- base64url transport encoding for the wrap key fingerprint.
+					$b64 = rtrim( strtr( base64_encode( $w ), '+/', '-_' ), '=' );
+					error_log( sprintf( '[sesamy] Rotation::deriveWrapKey slot=%s kid=%s wrapKey=%s', $slot, $kid, $b64 ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				}
 			}
 
 			return "<!--\n" . implode( "\n", $lines ) . "\n-->";

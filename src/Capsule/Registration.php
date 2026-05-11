@@ -419,7 +419,7 @@ class Registration {
 		// Mirror SesamyApi: an auth failure invalidates the cached token so
 		// the next call mints a fresh one (often after a credential rotate).
 		if ( 401 === $code || 403 === $code ) {
-			delete_transient( 'sesamy_access_token' );
+			SesamyApi::invalidate_cached_token();
 		}
 
 		if ( $code < 200 || $code >= 300 ) {

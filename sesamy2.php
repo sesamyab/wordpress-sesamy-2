@@ -4,7 +4,7 @@
  * Plugin URI:        https://sesamy.com
  * Description:       Add Sesamy functionality (sesamy.com) to your WordPress website.
  * Version:           1.2.19
- * Requires at least: 4.9
+ * Requires at least: 6.8
  * Requires PHP:      8.3
  * Author:            Sesamy
  * Author URI:        https://sesamy.com/

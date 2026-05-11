@@ -412,7 +412,7 @@ The WP plugin's admin UI is deliberately minimal. No complex per-post plan picke
 
 **Storage (`wp_options`, all `autoload=false`):**
 
-```
+```text
 sesamy_connection = {
     integration_id: "int_abc123",
     client_id: "cli_...",
@@ -481,7 +481,7 @@ If the toggle is off, the post renders normally — the more tag behaves as it a
 
 **Per-post locking metabox (sidebar):**
 
-```
+```text
 - Lock content below the "Read more" tag  [toggle]
 - Required entitlement                      [select: any signed-in / specific entitlement]
 - Override paywall strategy                 [optional, see §5.5]
@@ -608,7 +608,7 @@ Extensible via `sesamy_lock_context` filter.
 
 **Actions:**
 
-```
+```text
 sesamy_connected
 sesamy_disconnected
 sesamy_before_lock_post
@@ -620,7 +620,7 @@ sesamy_routing_mode_changed
 
 **Filters:**
 
-```
+```text
 sesamy_lock_context
 sesamy_lock_teaser
 sesamy_paywall_html
@@ -637,7 +637,7 @@ sesamy_cache_bypass_patterns
 
 **Memberful bridge filters (Stage 3):**
 
-```
+```text
 memberful_wp_after_sign_in_url
 memberful_wp_after_sign_out_url
 memberful_marketing_content
@@ -696,7 +696,7 @@ Blanket "bypass everything under /sesamy/" would correctly avoid caching sensiti
 
 Sesamy publishes as a `wrangler`-deployable template:
 
-```
+```text
 sesamy-wp-proxy/
 ├── wrangler.toml
 ├── src/

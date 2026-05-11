@@ -57,6 +57,11 @@ class PluginCore {
 	public function activate() {
 		// First load the init scripts in case any rewrite functionality is being loaded
 		$this->init();
+		// The modules queue their rewrite registration on the `init` action,
+		// which doesn't fire during plugin activation. Register the rewrites
+		// directly so flush_rewrite_rules() persists a complete rule set.
+		( new \SesamyPlugin\Capsule\Jwks() )->register_rewrite();
+		( new \SesamyPlugin\Proxy\Router() )->register_rewrites();
 		flush_rewrite_rules();
 	}
 

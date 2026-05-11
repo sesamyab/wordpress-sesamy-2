@@ -122,7 +122,7 @@ class Router {
 		$query = $_GET;
 		unset( $query['sesamy_proxy_type'], $query['sesamy_proxy_path'] );
 		if ( ! empty( $query ) ) {
-			$upstream .= ( false === strpos( $upstream, '?' ) ? '?' : '&' )
+			$upstream .= ( ! str_contains( $upstream, '?' ) ? '?' : '&' )
 				. http_build_query( $query, '', '&', PHP_QUERY_RFC3986 );
 		}
 

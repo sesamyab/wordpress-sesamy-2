@@ -75,13 +75,13 @@ class Jwks {
 		try {
 			$document = Service::jwks_document();
 		} catch ( \Throwable $e ) {
+			error_log( '[sesamy] JWKS endpoint failed: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			status_header( 500 );
 			nocache_headers();
 			header( 'Content-Type: application/json; charset=utf-8' );
 			echo wp_json_encode(
 				[
-					'error'             => 'sesamy_jwks_unavailable',
-					'error_description' => $e->getMessage(),
+					'error' => 'sesamy_jwks_unavailable',
 				]
 			);
 			exit;

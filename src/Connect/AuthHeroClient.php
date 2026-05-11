@@ -107,6 +107,23 @@ class AuthHeroClient {
 	 * @return true|\WP_Error
 	 */
 	public static function delete_registration( $registration_client_uri, $registration_access_token ) {
+		// Validate the URL before forwarding the bearer token. AuthHero
+		// returned it during DCR, but the value is stored locally and could
+		// have been tampered with; refuse anything that isn't an HTTPS URL on
+		// the expected Sesamy auth host so the access token can't be
+		// exfiltrated to an attacker-controlled origin.
+		if ( ! is_string( $registration_client_uri ) || '' === $registration_client_uri ) {
+			return new \WP_Error( 'sesamy_unregister_invalid_uri', 'Missing registration_client_uri.' );
+		}
+		$parts = wp_parse_url( $registration_client_uri );
+		if ( ! is_array( $parts ) || 'https' !== ( $parts['scheme'] ?? '' ) || empty( $parts['host'] ) ) {
+			return new \WP_Error( 'sesamy_unregister_invalid_uri', 'registration_client_uri must be HTTPS.' );
+		}
+		$host = strtolower( (string) $parts['host'] );
+		if ( ! preg_match( '/(^|\.)sesamy\.(com|dev)$/', $host ) ) {
+			return new \WP_Error( 'sesamy_unregister_invalid_uri', 'registration_client_uri host is not in the Sesamy allowlist.' );
+		}
+
 		$response = wp_remote_request(
 			$registration_client_uri,
 			[
