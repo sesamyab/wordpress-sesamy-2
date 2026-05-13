@@ -44,6 +44,7 @@ class PluginCore {
 		\SesamyPlugin\Connect\ConnectFlow::init();
 		\SesamyPlugin\Core\Assets::init();
 		\SesamyPlugin\Frontend\ContentContainer::init();
+		\SesamyPlugin\Frontend\Login::init();
 		\SesamyPlugin\Frontend\Meta::init();
 		\SesamyPlugin\Proxy\Router::init();
 	}
