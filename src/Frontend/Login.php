@@ -62,7 +62,7 @@ class Login {
 		register_block_type(
 			'sesamy/login',
 			[
-				'api_version'     => 3,
+				'api_version'     => '3',
 				'editor_script'   => 'sesamy-login-block',
 				// `showSubmenuIcon` is provided by core/navigation, so its
 				// presence in $block->context tells us we're being rendered
