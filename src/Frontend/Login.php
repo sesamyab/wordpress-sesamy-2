@@ -12,7 +12,7 @@ use function SesamyPlugin\Helpers\is_config_valid;
 /**
  * Login module.
  *
- * Registers the `sesamy/login` block.
+ * Registers the `sesamy/login` block and the `[sesamy-login]` shortcode.
  *
  * @package Sesamy2
  */
@@ -36,6 +36,7 @@ class Login {
 	public function register() {
 		if ( is_config_valid() ) {
 			add_action( 'init', [ $this, 'register_block' ] );
+			add_shortcode( 'sesamy-login', [ $this, 'render_shortcode' ] );
 		}
 	}
 
@@ -106,5 +107,33 @@ class Login {
 
 		$wrapper_attributes = get_block_wrapper_attributes();
 		return sprintf( '<div %s><sesamy-login>%s</sesamy-login></div>', $wrapper_attributes, $slot );
+	}
+
+	/**
+	 * Render callback for the `[sesamy-login]` shortcode.
+	 *
+	 * Emits the <sesamy-login> web component. Accepts an optional
+	 * `button_text` attribute to override the default button label.
+	 *
+	 * @param array|string $atts Shortcode attributes.
+	 * @return string
+	 */
+	public function render_shortcode( $atts ) {
+		if ( ! is_config_valid() ) {
+			return '';
+		}
+
+		$atts = shortcode_atts(
+			[ 'button_text' => '' ],
+			is_array( $atts ) ? $atts : [],
+			'sesamy-login'
+		);
+
+		$button_text = trim( (string) $atts['button_text'] );
+		$slot        = '' !== $button_text
+			? sprintf( '<span slot="button-text">%s</span>', esc_html( $button_text ) )
+			: '';
+
+		return sprintf( '<sesamy-login>%s</sesamy-login>', $slot );
 	}
 }
