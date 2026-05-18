@@ -22,6 +22,7 @@ Connect your WordPress site to [Sesamy.com](https://sesamy.com) to sell and mana
   - [Advanced: API token](#advanced-api-token)
 - [Publisher registration](#publisher-registration)
 - [Per-post controls](#per-post-controls)
+- [Rendering Sesamy Login](#rendering-sesamy-login)
 - [Frontend behavior](#frontend-behavior)
 - [Local development](#local-development)
 - [Linting and tests](#linting-and-tests)
@@ -228,6 +229,33 @@ Enabled post types get an extra **Sesamy** column showing 🔒 Locked and 💰 S
 
 ---
 
+## Rendering Sesamy Login
+
+The plugin exposes the Sesamy Login `<sesamy-login>` web component through three insertion surfaces so editors can drop a sign-in button anywhere it's needed. All three are gated on a valid plugin connection — they render nothing while disconnected.
+
+### Block (`sesamy/login`)
+
+Available in the inserter (under Widgets) and inside any Navigation block. The block has an optional **Button text** attribute that becomes a `<span slot="button-text">…</span>` inside the component; leave it empty to use the web component's default label.
+
+Inside a Navigation block the rendered output is wrapped in `<li>` so it sits alongside other nav items; elsewhere it renders inside a plain `<div>`.
+
+### Shortcode (`[sesamy-login]`)
+
+For the Classic Editor, text widgets, and any context that runs shortcodes:
+
+```text
+[sesamy-login]
+[sesamy-login button_text="Sign in"]
+```
+
+The optional `button_text` attribute behaves the same as the block's Button text.
+
+### Classic menu item
+
+For sites still using **Appearance → Menus**, a "Sesamy" meta box in the left column lets editors add a "Sesamy Login" item to any menu like a built-in item. Tick the option, click **Add to Menu**, and save — the rendered menu item is swapped for `<sesamy-login>` on the frontend, using the menu item's title as the button label.
+
+---
+
 ## Frontend behavior
 
 When the plugin is connected and a post type is enabled, every singular page of that post type:
@@ -333,7 +361,7 @@ src/
   Core/Assets.php          # Enqueues the Sesamy frontend bundle
   Frontend/ContentContainer.php # Wraps `the_content` per lock mode
   Frontend/Meta.php        # `<head>` meta tags
-  Frontend/Login.php       # Login state hooks
+  Frontend/Login.php       # `sesamy/login` block, `[sesamy-login]` shortcode, classic-menus meta box
   Proxy/Router.php         # `/sesamy/api/*` and `/sesamy/auth/*` proxy
   Support/helpers.php      # Settings defaults, URL builder, helpers
 assets/

@@ -52,6 +52,7 @@
     "devURL": "http://127.0.0.1:8888",
     "entry": {
       "admin": "./assets/js/admin.js",
+      "login-block": "./assets/js/login-block.js",
       "post-settings": "./assets/js/post-settings.js",
       "sesamy": "./assets/js/sesamy.js"
     }
