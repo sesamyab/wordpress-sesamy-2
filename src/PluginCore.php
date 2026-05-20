@@ -36,6 +36,7 @@ class PluginCore {
 		// Init class interfaces
 		\SesamyPlugin\Admin\Settings\Core::init();
 		\SesamyPlugin\Admin\Settings\Post::init();
+		\SesamyPlugin\Admin\View\ConnectionNotice::init();
 		\SesamyPlugin\Admin\View\ReleaseNotice::init();
 		\SesamyPlugin\Admin\View\SettingsPage::init();
 		\SesamyPlugin\Api\Rest::init();
