@@ -87,11 +87,38 @@ function get_enabled_post_types() {
 /**
  * Get the stored Sesamy connection bundle written at the end of the connect flow.
  *
+ * Synthesizes a stub bundle from legacy `sesamy_settings.client_id` when no
+ * `sesamy_connection` option exists. Pre-rewrite installs stored the publisher
+ * identifier under `sesamy_settings.client_id` and used it both as the
+ * connection marker and as the script-host segment — so the same value seeds
+ * both `client_id` (to satisfy `is_sesamy_connected()`) and `tenant` (to feed
+ * the frontend bootstrap's `clientId` / bundle URL). Keeps locked articles
+ * rendering paywalls across the upgrade without a destructive DB write, so
+ * downgrades remain safe and the stub is replaced wholesale once the publisher
+ * runs Connect.
+ *
+ * `integration_type = 'legacy_upgrade'` marks the stub so other modules can
+ * recognise it — notably, disconnect-revoke is a no-op for legacy stubs since
+ * we never had a `registration_client_uri` / `registration_access_token` to
+ * call back to AuthHero with.
+ *
  * @return array<string, mixed>|null
  */
 function get_sesamy_connection() {
 	$connection = get_option( 'sesamy_connection' );
-	return is_array( $connection ) ? $connection : null;
+	if ( is_array( $connection ) ) {
+		return $connection;
+	}
+	$legacy = get_option( 'sesamy_settings' );
+	if ( is_array( $legacy ) && ! empty( $legacy['client_id'] ) ) {
+		return [
+			'client_id'        => (string) $legacy['client_id'],
+			'tenant'           => (string) $legacy['client_id'],
+			'environment'      => ! empty( $legacy['development_mode'] ) ? 'dev' : 'prod',
+			'integration_type' => 'legacy_upgrade',
+		];
+	}
+	return null;
 }
 
 /**
