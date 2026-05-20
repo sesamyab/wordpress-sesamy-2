@@ -89,18 +89,21 @@ function get_enabled_post_types() {
  *
  * Synthesizes a stub bundle from legacy `sesamy_settings.client_id` when no
  * `sesamy_connection` option exists. Pre-rewrite installs stored the publisher
- * identifier under `sesamy_settings.client_id` and used it both as the
- * connection marker and as the script-host segment — so the same value seeds
- * both `client_id` (to satisfy `is_sesamy_connected()`) and `tenant` (to feed
- * the frontend bootstrap's `clientId` / bundle URL). Keeps locked articles
- * rendering paywalls across the upgrade without a destructive DB write, so
- * downgrades remain safe and the stub is replaced wholesale once the publisher
- * runs Connect.
+ * identifier under `sesamy_settings.client_id` and used it as the script-host
+ * segment — so the same value seeds both `client_id` (read by
+ * `get_sesamy_client_id()` to keep `is_config_valid()` true) and `tenant`
+ * (read by `get_sesamy_vendor_id()` to feed the frontend bootstrap's
+ * `clientId` / bundle URL). Keeps locked articles rendering paywalls across
+ * the upgrade without a destructive DB write, so downgrades remain safe and
+ * the stub is replaced wholesale once the publisher runs Connect.
  *
- * `integration_type = 'legacy_upgrade'` marks the stub so other modules can
- * recognise it — notably, disconnect-revoke is a no-op for legacy stubs since
- * we never had a `registration_client_uri` / `registration_access_token` to
- * call back to AuthHero with.
+ * `integration_type = 'legacy_upgrade'` marks the stub so callers can
+ * distinguish it from a real connection. `is_sesamy_connected()` keys off
+ * this to return false on legacy installs — the settings page then shows
+ * "Connect to Sesamy" and skips the publisher-registration panel (which
+ * needs M2M credentials the stub doesn't have). Disconnect-revoke is also a
+ * no-op for legacy stubs since `registration_client_uri` /
+ * `registration_access_token` are absent.
  *
  * @return array<string, mixed>|null
  */
@@ -147,10 +150,21 @@ function get_sesamy_vendor_id() {
 /**
  * Whether the site has completed the Sesamy connect flow.
  *
+ * Legacy stubs synthesised by `get_sesamy_connection()` deliberately fail
+ * this check — they lack the M2M credentials needed for server-side calls
+ * (publisher registration, capsule, management API), so treating them as
+ * "connected" on the settings page produces a misleading status alongside
+ * the API errors those modules raise. Returning false here surfaces the
+ * Connect button instead and hides the publisher-registration panel.
+ *
  * @return bool
  */
 function is_sesamy_connected() {
-	return get_sesamy_client_id() !== null;
+	$connection = get_sesamy_connection();
+	if ( ! is_array( $connection ) || empty( $connection['client_id'] ) ) {
+		return false;
+	}
+	return 'legacy_upgrade' !== ( $connection['integration_type'] ?? '' );
 }
 
 /**
@@ -264,11 +278,15 @@ function sesamy_url( $path, $type = 'api', $direct = false ) {
 /**
  * Is config valid?
  *
- * Checks both that the publisher has connected via the Stage 0 flow and that
- * the legacy content-gating settings are populated.
+ * Frontend gate — true whenever we have *any* form of publisher identifier
+ * (real connection or legacy stub) and the gating settings are populated.
+ * Deliberately broader than `is_sesamy_connected()`: a legacy upgrader has no
+ * M2M credentials but still has the vendor id needed to load the script
+ * bundle and render paywalls. The strict check belongs to the settings page,
+ * not the reader-facing render path.
  *
  * @return bool
  */
 function is_config_valid() {
-	return is_sesamy_connected() && ! empty( get_sesamy_setting( 'default_paywall' ) ) && ! empty( get_sesamy_setting( 'enabled_content_types' ) ) && ! empty( get_sesamy_setting( 'lock_mode' ) );
+	return null !== get_sesamy_client_id() && ! empty( get_sesamy_setting( 'default_paywall' ) ) && ! empty( get_sesamy_setting( 'enabled_content_types' ) ) && ! empty( get_sesamy_setting( 'lock_mode' ) );
 }
