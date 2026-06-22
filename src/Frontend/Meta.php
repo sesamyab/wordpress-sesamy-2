@@ -8,6 +8,7 @@
 namespace SesamyPlugin\Frontend;
 
 use function SesamyPlugin\Helpers\get_enabled_post_types;
+use function SesamyPlugin\Helpers\get_sesamy_vendor_id;
 use function SesamyPlugin\Helpers\is_config_valid;
 
 /**
@@ -55,10 +56,11 @@ class Meta {
 	 */
 	public function add_meta_tags() {
 		global $post;
-		$options = get_option( 'sesamy_settings' );
+		$options   = get_option( 'sesamy_settings' );
+		$vendor_id = get_sesamy_vendor_id();
 
-		if ( ! empty( $options['client_id'] ) ) {
-			echo '<meta name="sesamy:client-id" content="' . esc_attr( $options['client_id'] ) . '">';
+		if ( $vendor_id ) {
+			echo '<meta name="sesamy:vendor-id" content="' . esc_attr( $vendor_id ) . '">';
 		}
 		if ( ! empty( $options['default_pass'] ) ) {
 			echo '<meta name="sesamy:pass" content="' . esc_attr( $options['default_pass'] ) . '">';

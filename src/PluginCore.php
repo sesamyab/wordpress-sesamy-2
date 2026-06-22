@@ -36,12 +36,18 @@ class PluginCore {
 		// Init class interfaces
 		\SesamyPlugin\Admin\Settings\Core::init();
 		\SesamyPlugin\Admin\Settings\Post::init();
+		\SesamyPlugin\Admin\View\ConnectionNotice::init();
 		\SesamyPlugin\Admin\View\ReleaseNotice::init();
 		\SesamyPlugin\Admin\View\SettingsPage::init();
 		\SesamyPlugin\Api\Rest::init();
+		\SesamyPlugin\Capsule\Jwks::init();
+		\SesamyPlugin\Capsule\Registration::init();
+		\SesamyPlugin\Connect\ConnectFlow::init();
 		\SesamyPlugin\Core\Assets::init();
 		\SesamyPlugin\Frontend\ContentContainer::init();
+		\SesamyPlugin\Frontend\Login::init();
 		\SesamyPlugin\Frontend\Meta::init();
+		\SesamyPlugin\Proxy\Router::init();
 	}
 
 	/**
@@ -52,6 +58,11 @@ class PluginCore {
 	public function activate() {
 		// First load the init scripts in case any rewrite functionality is being loaded
 		$this->init();
+		// The modules queue their rewrite registration on the `init` action,
+		// which doesn't fire during plugin activation. Register the rewrites
+		// directly so flush_rewrite_rules() persists a complete rule set.
+		( new \SesamyPlugin\Capsule\Jwks() )->register_rewrite();
+		( new \SesamyPlugin\Proxy\Router() )->register_rewrites();
 		flush_rewrite_rules();
 	}
 

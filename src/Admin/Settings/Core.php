@@ -8,6 +8,8 @@
 namespace SesamyPlugin\Admin\Settings;
 
 use function SesamyPlugin\Helpers\get_enabled_post_types;
+use function SesamyPlugin\Helpers\is_local_install;
+use function SesamyPlugin\Helpers\is_sesamy_connected;
 
 /**
  * Core Settings module.
@@ -53,12 +55,6 @@ class Core {
 					'schema' => [
 						'type'       => 'object',
 						'properties' => [
-							'client_id'             => [
-								'type' => 'string',
-							],
-							'client_secret'         => [
-								'type' => 'string',
-							],
 							'default_currency'      => [
 								'type' => 'string',
 							],
@@ -78,6 +74,9 @@ class Core {
 								'type' => 'array',
 							],
 							'development_mode'      => [
+								'type' => 'boolean',
+							],
+							'use_first_party_proxy' => [
 								'type' => 'boolean',
 							],
 						],
@@ -128,6 +127,7 @@ class Core {
 					$sanitized_input[ $key ] = array_map( 'sanitize_text_field', (array) $value );
 					break;
 				case 'development_mode':
+				case 'use_first_party_proxy':
 					$sanitized_input[ $key ] = rest_sanitize_boolean( $value );
 					break;
 				default:
@@ -148,6 +148,43 @@ class Core {
 	public function add_sesamy_setting_fields() {
 		$settings_page_view = new \SesamyPlugin\Admin\View\SettingsPage();
 
+		// "Pre-connect" section — fields that need to be reachable before the
+		// publisher has linked their Sesamy account (so the operator can pick
+		// the right cluster before triggering Connect). Rendered separately
+		// from the main `section_advanced` block in `SettingsPage::admin_page`.
+		add_settings_section(
+			'section_pre_connect',
+			'',
+			[ $settings_page_view, 'section_general_callback' ],
+			'sesamy'
+		);
+
+		// Switches every Sesamy URL from `.com` to `.dev` (`api2.sesamy.dev`,
+		// `auth2.sesamy.dev`, `scripts.sesamy.dev`, …). Must be settable before
+		// Connect because Connect needs to know which cluster to target.
+		// Hidden on non-local installs — production publishers should never
+		// need it, and surfacing it would invite accidental flips.
+		if ( is_local_install() ) {
+			add_settings_field(
+				'development_mode',
+				__( 'Development mode', 'sesamy' ),
+				[ $settings_page_view, 'settings_render_checkbox' ],
+				'sesamy',
+				'section_pre_connect',
+				[
+					'name'      => 'development_mode',
+					'label_for' => __( 'Use Sesamy `.dev` cluster instead of production. Reconnect after toggling.', 'sesamy' ),
+				]
+			);
+		}
+
+		// Settings UI is only meaningful once the publisher has linked their
+		// Sesamy account — the paywall list and lock behaviour both depend on
+		// the connected client.
+		if ( ! is_sesamy_connected() ) {
+			return;
+		}
+
 		add_settings_section(
 			'section_general',
 			'',
@@ -155,103 +192,15 @@ class Core {
 			'sesamy'
 		);
 
-		add_settings_field(
-			'client_id',
-			__( 'Client ID', 'sesamy' ),
-			[ $settings_page_view, 'settings_render_textfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'      => 'client_id',
-				'label_for' => 'client_id',
-			]
-		);
-
-		// TODO: Add client secret when needed
-		// add_settings_field(
-		// 'client_secret',
-		// __( 'Client Secret', 'sesamy' ),
-		// [ $settings_page_view, 'settings_render_textfield' ],
-		// 'sesamy',
-		// 'section_general',
-		// [
-		// 'name'      => 'client_secret',
-		// 'label_for' => 'client_secret',
-		// ]
-		// );
-
-		add_settings_field(
-			'default_currency',
-			__( 'Default Currency', 'sesamy' ),
-			[ $settings_page_view, 'settings_render_selectfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'      => 'default_currency',
-				'label_for' => 'default_currency',
-				'options'   => [
-					''    => 'Select',
-					'DKK' => 'DKK',
-					'GBP' => 'GBP',
-					'USD' => 'USD',
-					'SEK' => 'SEK',
-					'EUR' => 'EUR',
-					'NOK' => 'NOK',
-				],
-			]
-		);
-
-		add_settings_field(
-			'default_price',
-			__( 'Default Article Price', 'sesamy' ),
-			[ $settings_page_view, 'settings_render_textfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'        => 'default_price',
-				'label_for'   => 'default_price',
-				'description' => __( 'The default single purchase price for an article.', 'sesamy' ),
-			]
-		);
-
-		add_settings_field(
-			'default_paywall',
-			__( 'Default Paywall', 'sesamy' ),
-			[ $settings_page_view, 'settings_render_textfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'      => 'default_paywall',
-				'label_for' => 'default_paywall',
-			]
-		);
-
-		add_settings_field(
-			'default_pass',
-			__( 'Default Pass', 'sesamy' ),
-			[ $settings_page_view, 'settings_render_textfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'      => 'default_pass',
-				'label_for' => 'default_pass',
-			]
-		);
-
-		add_settings_field(
-			'lock_mode',
-			__( 'Lock Mode', 'sesamy' ),
-			[ $settings_page_view, 'settings_render_selectfield' ],
-			'sesamy',
-			'section_general',
-			[
-				'name'    => 'lock_mode',
-				'options' => [
-					'encode' => 'Encode',
-					'embed'  => 'Embed',
-					// 'proxy'  => 'Proxy', TODO: Add proxy support
-				],
-			]
+		// Advanced section is rendered inside a collapsible `<details>` in
+		// `SettingsPage::admin_page()`; keeping it as its own section lets
+		// us reuse the standard `do_settings_fields()` rendering inside the
+		// fold-out block.
+		add_settings_section(
+			'section_advanced',
+			'',
+			[ $settings_page_view, 'section_advanced_callback' ],
+			'sesamy'
 		);
 
 		add_settings_field(
@@ -266,32 +215,55 @@ class Core {
 		);
 
 		add_settings_field(
-			'development_mode',
-			__( 'Development Mode', 'sesamy' ),
-			[ $settings_page_view, 'settings_render_checkbox' ],
+			'default_paywall',
+			__( 'Default Paywall', 'sesamy' ),
+			[ $settings_page_view, 'settings_render_paywall_select' ],
 			'sesamy',
 			'section_general',
 			[
-				'name'      => 'development_mode',
-				'label_for' => __( 'Enabled', 'sesamy' ),
+				'name'      => 'default_paywall',
+				'label_for' => 'default_paywall',
 			]
 		);
 
-		// TODO: Add render settings
-		// add_settings_field(
-		// 'render_settings',
-		// __( 'Render', 'sesamy' ),
-		// [ $settings_page_view, 'settings_render_checkbox_list' ],
-		// 'sesamy',
-		// 'section_general',
-		// [
-		// 'name'    => 'render_settings',
-		// 'options' => [
-		// 'meta'    => 'Metadata',
-		// 'paywall' => 'Paywall',
-		// 'js'      => 'JavaScript',
-		// ],
-		// ]
-		// );
+		add_settings_field(
+			'default_pass',
+			__( 'Default Pass', 'sesamy' ),
+			[ $settings_page_view, 'settings_render_pass_select' ],
+			'sesamy',
+			'section_general',
+			[
+				'name'      => 'default_pass',
+				'label_for' => 'default_pass',
+			]
+		);
+
+		add_settings_field(
+			'lock_mode',
+			__( 'Lock Mode', 'sesamy' ),
+			[ $settings_page_view, 'settings_render_selectfield' ],
+			'sesamy',
+			'section_advanced',
+			[
+				'name'    => 'lock_mode',
+				'options' => [
+					'capsule' => 'Server-side encryption',
+					'embed'   => 'Embed',
+					'encode'  => 'Encode',
+				],
+			]
+		);
+
+		add_settings_field(
+			'use_first_party_proxy',
+			__( 'First-party proxy', 'sesamy' ),
+			[ $settings_page_view, 'settings_render_checkbox' ],
+			'sesamy',
+			'section_advanced',
+			[
+				'name'      => 'use_first_party_proxy',
+				'label_for' => __( 'Route Sesamy auth and API traffic through this domain (recommended).', 'sesamy' ),
+			]
+		);
 	}
 }

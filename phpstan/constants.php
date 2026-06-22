@@ -8,6 +8,9 @@
  */
 
 define( 'SESAMY_PLUGIN_VERSION', '1.0.0' );
+define( 'SESAMY_JS_VERSION', '1.0.0' );
 define( 'SESAMY_PLUGIN_URL', '' );
 define( 'SESAMY_PLUGIN_PATH', '' );
 define( 'SESAMY_PLUGIN_INC', SESAMY_PLUGIN_PATH . 'src/' );
+define( 'SESAMY_PLUGIN_DIST_URL', SESAMY_PLUGIN_URL . 'dist/' );
+define( 'SESAMY_PLUGIN_DIST_PATH', SESAMY_PLUGIN_PATH . 'dist/' );

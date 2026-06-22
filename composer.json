@@ -9,8 +9,9 @@
     ]
   },
   "require": {
-    "php": ">=7.3",
-    "firebase/php-jwt": "6.4"
+    "php": ">=8.3",
+    "firebase/php-jwt": "6.4",
+    "sesamy/capsule-publisher": "dev-main"
   },
   "require-dev": {
     "10up/phpcs-composer": "^3.0",
@@ -40,6 +41,9 @@
     "allow-plugins": {
       "composer/installers": true,
       "dealerdirect/phpcodesniffer-composer-installer": true
+    },
+    "platform": {
+      "php": "8.3"
     }
   }
 }

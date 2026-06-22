@@ -22,14 +22,24 @@
   },
   "devDependencies": {
     "10up-toolkit": "6.4.1",
+    "@10up/babel-preset-default": "^2.1.2",
+    "@10up/eslint-config": "^4.1.4",
+    "@10up/stylelint-config": "^3.0.1",
     "@commitlint/cli": "19.8.0",
     "@commitlint/config-conventional": "19.8.0",
+    "@wordpress/env": "^11.4.0",
     "commit-and-tag-version": "12.5.1",
+    "eslint": "^8.57.1",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-airbnb-base": "^15.0.0",
     "husky": "9.1.7",
     "jest-environment-jsdom": "29.7.0",
-    "lint-staged": "15.5.0"
+    "lint-staged": "15.5.0",
+    "prettier": "^3.1.1",
+    "stylelint": "^17.11.0"
   },
   "dependencies": {
+    "@sesamy/sesamy-js": "1.120.2",
     "@wordpress/api-fetch": "^7.20.0",
     "@wordpress/components": "^29.6.0",
     "@wordpress/data": "^10.20.0",
@@ -42,12 +52,14 @@
     "devURL": "http://127.0.0.1:8888",
     "entry": {
       "admin": "./assets/js/admin.js",
-      "post-settings": "./assets/js/post-settings.js"
+      "login-block": "./assets/js/login-block.js",
+      "post-settings": "./assets/js/post-settings.js",
+      "sesamy": "./assets/js/sesamy.js"
     }
   },
   "commit-and-tag-version": {
     "scripts": {
-      "precommit": "npm run update-plugin-version && git add sesamy2.php"
+      "precommit": "yarn update-plugin-version && git add sesamy2.php"
     }
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"

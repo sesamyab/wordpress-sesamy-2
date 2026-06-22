@@ -4,8 +4,8 @@
  * Plugin URI:        https://sesamy.com
  * Description:       Add Sesamy functionality (sesamy.com) to your WordPress website.
  * Version:           1.2.19
- * Requires at least: 4.9
- * Requires PHP:      7.2
+ * Requires at least: 6.8
+ * Requires PHP:      8.3
  * Author:            Sesamy
  * Author URI:        https://sesamy.com/
  * License:           GPL-2.0+
@@ -23,6 +23,12 @@ if ( ! defined( 'WPINC' ) ) {
 
 // Useful global constants.
 define( 'SESAMY_PLUGIN_VERSION', '1.2.19' );
+// Pinned version of `@sesamy/sesamy-js`. Kept in sync with
+// `package.json` by `update-plugin-version.js` on precommit. The bootstrap
+// loader is bundled at this version and the same value is emitted in the
+// `<script id="sesamy-js">` config so the script-host chain (auth0-plugin,
+// capsule-plugin, sesamy-components, core) loads in lockstep.
+define( 'SESAMY_JS_VERSION', '1.120.2' );
 define( 'SESAMY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SESAMY_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SESAMY_PLUGIN_INC', SESAMY_PLUGIN_PATH . 'src/' );

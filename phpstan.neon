@@ -27,3 +27,5 @@ parameters:
 		- '#^Parameter \#3 \$deps of function wp_register_style expects array<string>, array<string>\|string given\.#'
 		# Ignore strict comparison issues with get_post_meta return values
 		- '#^Strict comparison using === between .* and mixed.* will always evaluate to false\.$#'
+		# WP stub uses `@template T` but rest_sanitize_boolean is called with mixed user input
+		- '#^Unable to resolve the template type T in call to function rest_sanitize_boolean$#'

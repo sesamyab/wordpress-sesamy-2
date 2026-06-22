@@ -26,9 +26,7 @@ jobs:
             ${{ runner.os }}-php-
 
       - name: Run build zip script
-        run: |
-          chmod +x build-zip.sh
-          ./build-zip.sh
+        run: ./build-zip.sh
 
       - name: Rename zip file with version
         run: |

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 rm -rf dist
-npm install
-npm run build
+yarn install --frozen-lockfile
+yarn build
 
 mkdir sesamy-wordpress
 # The --delete flag will delete anything in destination that no longer exists in source
