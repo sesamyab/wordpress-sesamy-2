@@ -1,33 +1,75 @@
-name: Version bump
+name: Version bump & publish
 
 on:
   push:
     branches:
       - main
 
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: "22"
-          cache: "npm"
-          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: yarn install --frozen-lockfile
+
       - name: Set Git Identity
         run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "GitHub Actions"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "GitHub Actions"
 
-      - name: Bump version and update plugin file
-        run: npm run release
-
-      - name: Commit changes
+      # Bumps the version, updates sesamy2.php, writes CHANGELOG and creates the
+      # vX.Y.Z tag on the bump commit (which does NOT contain built assets).
+      - name: Bump version and tag
+        id: bump
         run: |
-          git push --follow-tags origin main
+          BEFORE="$(git describe --tags --abbrev=0 2>/dev/null || echo none)"
+          npm run release
+          AFTER="$(git describe --tags --abbrev=0)"
+          if [ "$BEFORE" = "$AFTER" ]; then
+            echo "No new release created; nothing to publish."
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=true" >> "$GITHUB_OUTPUT"
+            echo "tag=$AFTER" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Build the front-end assets (dist/ is gitignored) and move the release
+      # tag onto a detached commit that includes them, so Packagist serves a
+      # ready-to-run plugin. `main` itself stays free of build artifacts.
+      - name: Build assets into the release tag
+        if: steps.bump.outputs.released == 'true'
+        env:
+          TAG: ${{ steps.bump.outputs.tag }}
+        run: |
+          yarn build
+          git checkout --detach
+          git add -f dist
+          git commit -m "build: bundle assets for ${TAG}"
+          git tag -f -a "${TAG}" -m "${TAG}"
+          git checkout main
+
+      - name: Push commit and release tag
+        if: steps.bump.outputs.released == 'true'
+        env:
+          TAG: ${{ steps.bump.outputs.tag }}
+          PUSH_URL: https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git
+        run: |
+          git push "${PUSH_URL}" main
+          git push -f "${PUSH_URL}" "refs/tags/${TAG}"

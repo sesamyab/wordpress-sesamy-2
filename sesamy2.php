@@ -21,6 +21,14 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
+// Guard against the plugin file being loaded more than once in a single
+// request (e.g. when the plugin is present both standalone and as a Composer
+// dependency of the site). Re-entry would redefine the constants below and,
+// worse, bootstrap the plugin twice — registering every hook a second time.
+if ( defined( 'SESAMY_PLUGIN_VERSION' ) ) {
+	return;
+}
+
 // Useful global constants.
 define( 'SESAMY_PLUGIN_VERSION', '1.2.19' );
 // Pinned version of `@sesamy/sesamy-js`. Kept in sync with
@@ -47,14 +55,19 @@ if ( $is_local && file_exists( __DIR__ . '/dist/fast-refresh.php' ) ) {
 	}
 }
 
-// Bail if Composer autoloader is not found.
-if ( ! file_exists( SESAMY_PLUGIN_PATH . 'vendor/autoload.php' ) ) {
-	throw new \Exception(
-		'Vendor autoload file not found. Please run `composer install`.'
-	);
+// Load the Composer autoloader. When the plugin is installed standalone (the
+// zip distribution) it ships its own `vendor/`. When installed as a Composer
+// dependency of the site, the classes are registered in the site's root
+// autoloader, which is loaded before plugins run.
+if ( file_exists( SESAMY_PLUGIN_PATH . 'vendor/autoload.php' ) ) {
+	require_once SESAMY_PLUGIN_PATH . 'vendor/autoload.php';
 }
 
-require_once SESAMY_PLUGIN_PATH . 'vendor/autoload.php';
+if ( ! class_exists( \SesamyPlugin\PluginCore::class ) ) {
+	throw new \Exception(
+		'Sesamy dependencies not found. Run `composer install` in the plugin directory, or install the plugin via Composer.'
+	);
+}
 
 $plugin_core = new \SesamyPlugin\PluginCore();
 
