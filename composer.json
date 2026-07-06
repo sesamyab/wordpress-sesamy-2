@@ -16,7 +16,7 @@
   "require": {
     "php": ">=8.3",
     "composer/installers": "^2.0",
-    "firebase/php-jwt": "6.4",
+    "firebase/php-jwt": "^6.4",
     "sesamy/capsule-publisher": "^1.0"
   },
   "require-dev": {
