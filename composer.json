@@ -1,5 +1,10 @@
 {
+  "name": "sesamy/sesamy-wordpress",
+  "description": "Add Sesamy functionality (sesamy.com) to your WordPress website.",
   "type": "wordpress-plugin",
+  "license": "GPL-2.0-or-later",
+  "homepage": "https://sesamy.com",
+  "keywords": ["wordpress", "sesamy", "paywall", "subscriptions"],
   "scripts": {
     "lint": "./vendor/bin/phpcs --standard=./phpcs.xml",
     "lint-fix": "./vendor/bin/phpcbf --standard=./phpcs.xml",
@@ -10,8 +15,9 @@
   },
   "require": {
     "php": ">=8.3",
+    "composer/installers": "^2.0",
     "firebase/php-jwt": "6.4",
-    "sesamy/capsule-publisher": "dev-main"
+    "sesamy/capsule-publisher": "^1.0"
   },
   "require-dev": {
     "10up/phpcs-composer": "^3.0",
