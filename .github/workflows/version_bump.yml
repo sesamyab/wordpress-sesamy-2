@@ -15,6 +15,10 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      # Disable husky hooks (pre-commit/pre-push run phpcs and phpstan);
+      # composer dependencies are never installed in this workflow.
+      HUSKY: "0"
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
         with:
