@@ -57,12 +57,27 @@ Access decisions (who can read which article) live in **paywall strategies on Se
 
 ## Installation
 
-### Production install
+### Production install (zip upload)
 
 1. Download the latest `.zip` from the [Releases page](https://github.com/sesamyab/wordpress-sesamy-2/releases).
 2. In WordPress admin, go to **Plugins → Add New → Upload Plugin** and upload the `.zip`.
 3. Activate the plugin. A new top-level **Sesamy** menu appears in the admin sidebar.
 4. Open **Sesamy** and follow [Connecting to Sesamy](#connecting-to-sesamy).
+
+### Composer install
+
+For Composer-managed sites (Bedrock and similar), the plugin is published on
+[Packagist](https://packagist.org/packages/sesamy/sesamy-wordpress):
+
+```bash
+composer require sesamy/sesamy-wordpress
+```
+
+It is typed as a `wordpress-plugin`, so [composer/installers](https://github.com/composer/installers)
+places it under your plugins directory (e.g. `wp-content/plugins/sesamy-wordpress`).
+Released tags ship with the built frontend assets bundled, so there's no
+`yarn build` step — activate the plugin and continue with
+[Connecting to Sesamy](#connecting-to-sesamy).
 
 ### Local development install
 
