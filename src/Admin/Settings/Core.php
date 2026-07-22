@@ -73,6 +73,20 @@ class Core {
 							'enabled_content_types' => [
 								'type' => 'array',
 							],
+							'locked_terms'          => [
+								'type'  => 'array',
+								'items' => [
+									'type'       => 'object',
+									'properties' => [
+										'taxonomy' => [
+											'type' => 'string',
+										],
+										'term_id'  => [
+											'type' => 'integer',
+										],
+									],
+								],
+							],
 							'development_mode'      => [
 								'type' => 'boolean',
 							],
@@ -125,6 +139,26 @@ class Core {
 					break;
 				case 'enabled_content_types':
 					$sanitized_input[ $key ] = array_map( 'sanitize_text_field', (array) $value );
+					break;
+				case 'locked_terms':
+					// Accepts both the settings-form encoding (`taxonomy:term_id`
+					// strings from the checkbox list) and the canonical REST shape
+					// (`{taxonomy, term_id}` objects); stores the canonical shape.
+					$rules = [];
+					foreach ( (array) $value as $rule ) {
+						if ( is_string( $rule ) && preg_match( '/^([a-z0-9_-]+):(\d+)$/i', $rule, $matches ) ) {
+							$rules[] = [
+								'taxonomy' => sanitize_key( $matches[1] ),
+								'term_id'  => (int) $matches[2],
+							];
+						} elseif ( is_array( $rule ) && ! empty( $rule['taxonomy'] ) && ! empty( $rule['term_id'] ) ) {
+							$rules[] = [
+								'taxonomy' => sanitize_key( (string) $rule['taxonomy'] ),
+								'term_id'  => absint( $rule['term_id'] ),
+							];
+						}
+					}
+					$sanitized_input[ $key ] = $rules;
 					break;
 				case 'development_mode':
 				case 'use_first_party_proxy':
@@ -235,6 +269,17 @@ class Core {
 			[
 				'name'      => 'default_pass',
 				'label_for' => 'default_pass',
+			]
+		);
+
+		add_settings_field(
+			'locked_terms',
+			__( 'Automatic locking', 'sesamy' ),
+			[ $settings_page_view, 'settings_render_locked_terms' ],
+			'sesamy',
+			'section_general',
+			[
+				'name' => 'locked_terms',
 			]
 		);
 

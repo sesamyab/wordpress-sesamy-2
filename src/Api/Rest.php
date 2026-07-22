@@ -11,6 +11,7 @@ use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
 
 use function SesamyPlugin\Helpers\get_sesamy_environment;
+use function SesamyPlugin\Helpers\is_post_locked;
 
 /**
  * Rest module.
@@ -75,7 +76,7 @@ class Rest {
 			return new \WP_Error( 404, __( 'Post not found.', 'sesamy' ) );
 		}
 
-		$is_locked = get_post_meta( $post->ID, '_sesamy_locked', true );
+		$is_locked = is_post_locked( $post->ID );
 
 		if ( $is_locked ) {
 			$auth_header = (string) $request->get_header( 'authorization' );

@@ -10,6 +10,7 @@ namespace SesamyPlugin\Frontend;
 use function SesamyPlugin\Helpers\get_enabled_post_types;
 use function SesamyPlugin\Helpers\get_sesamy_vendor_id;
 use function SesamyPlugin\Helpers\is_config_valid;
+use function SesamyPlugin\Helpers\is_post_locked;
 
 /**
  * Meta module.
@@ -72,7 +73,7 @@ class Meta {
 		}
 
 		if ( is_singular() ) {
-			$is_locked    = (bool) ( get_post_meta( $post->ID, '_sesamy_locked', true ) ?? false );
+			$is_locked    = is_post_locked( $post->ID );
 			$access_level = $is_locked ? get_post_meta( $post->ID, '_sesamy_access_level', true ) : 'public';
 			if ( ! empty( $access_level ) ) {
 				echo '<meta name="sesamy:accessLevel" content="' . esc_attr( $access_level ) . '">';

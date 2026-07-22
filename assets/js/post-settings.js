@@ -2,7 +2,7 @@
  * WordPress dependencies
  */
 import { useSelect, useDispatch } from '@wordpress/data';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import { registerPlugin } from '@wordpress/plugins';
 import { ToggleControl, PanelRow, TextControl } from '@wordpress/components';
 
@@ -20,6 +20,38 @@ const SesamySettingsPanel = () => {
 	const meta = useSelect((select) => select('core/editor').getEditedPostAttribute('meta'));
 	const { editPost } = useDispatch('core/editor');
 
+	// First "Automatic locking" rule matching the edited post's terms, or null.
+	// Reads the *edited* term selection so the lock state updates live as the
+	// editor assigns or removes a locking category/tag, before saving.
+	const lockingRule = useSelect((select) => {
+		const rules = select('core').getEntityRecord('root', 'site')?.sesamy_settings?.locked_terms;
+		if (!rules?.length) {
+			return null;
+		}
+		const taxonomies = select('core').getTaxonomies({ per_page: -1 });
+		return (
+			rules.find((rule) => {
+				const restBase = taxonomies?.find((t) => t.slug === rule.taxonomy)?.rest_base;
+				if (!restBase) {
+					return false;
+				}
+				const termIds = select('core/editor').getEditedPostAttribute(restBase) ?? [];
+				return termIds.includes(rule.term_id);
+			}) ?? null
+		);
+	}, []);
+	const lockingTerm = useSelect(
+		(select) =>
+			lockingRule
+				? select('core').getEntityRecord(
+						'taxonomy',
+						lockingRule.taxonomy,
+						lockingRule.term_id,
+					)
+				: null,
+		[lockingRule],
+	);
+
 	const {
 		_sesamy_locked,
 		_sesamy_access_level,
@@ -28,6 +60,9 @@ const SesamySettingsPanel = () => {
 		_sesamy_custom_paywall_url,
 		_sesamy_locked_content_redirect_url,
 	} = meta;
+
+	const isTermLocked = !!lockingRule;
+	const isEffectivelyLocked = _sesamy_locked || isTermLocked;
 
 	const [displayPrice, setDisplayPrice] = useState(_sesamy_price ? _sesamy_price.toString() : '');
 
@@ -70,13 +105,29 @@ const SesamySettingsPanel = () => {
 				<ToggleControl
 					__nextHasNoMarginBottom
 					label={__('Lock this article', 'sesamy')}
-					checked={_sesamy_locked}
+					checked={isEffectivelyLocked}
+					disabled={isTermLocked}
+					help={
+						isTermLocked
+							? sprintf(
+									/* translators: %s: name of the term that locks the article. */
+									__(
+										'Locked automatically by “%s”. Manage under Settings → Sesamy.',
+										'sesamy',
+									),
+									lockingTerm?.name ?? lockingRule.taxonomy,
+								)
+							: ''
+					}
 					onChange={(value) => {
+						// Term-locked posts never write `_sesamy_locked` — the
+						// control is disabled, this only fires for the per-post
+						// toggle.
 						editPost({ meta: { ...meta, _sesamy_locked: value } });
 					}}
 				/>
 			</PanelRow>
-			{_sesamy_locked && (
+			{isEffectivelyLocked && (
 				<>
 					{/* TODO: access level
 					<PanelRow>

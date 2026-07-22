@@ -81,6 +81,13 @@ class ContentContainerTest extends TestCase {
 		WP_Mock::userFunction(
 			'apply_filters',
 			[
+				'args'       => [ 'sesamy_is_post_locked', WP_Mock\Functions::type( 'bool' ), $postId ],
+				'return_arg' => 1,
+			]
+		);
+		WP_Mock::userFunction(
+			'apply_filters',
+			[
 				'args'   => [ 'sesamy_paywall_preview', WP_Mock\Functions::type( 'string' ) ],
 				'return' => 'Preview',
 			]
@@ -116,6 +123,103 @@ class ContentContainerTest extends TestCase {
 
 		$this->assertStringContainsString( 'lock-mode="embed"', $result );
 		$this->assertStringContainsString( '<div slot="content">Test content</div>', $result );
+	}
+
+	public function test_process_content_locks_article_via_term_rule() {
+		$postId = 789;
+		// Meta says unlocked, but a locked_terms rule matches the post.
+		WP_Mock::userFunction( 'get_the_ID', [ 'return' => $postId ] );
+		WP_Mock::userFunction( 'get_the_excerpt', [ 'return' => 'Preview' ] );
+		WP_Mock::userFunction(
+			'get_option',
+			[
+				'args'   => [ 'sesamy_settings' ],
+				'return' => [
+					'lock_mode'    => 'encode',
+					'locked_terms' => [
+						[
+							'taxonomy' => 'category',
+							'term_id'  => 12,
+						],
+					],
+				],
+			]
+		);
+		WP_Mock::userFunction(
+			'get_extended',
+			[
+				'return' => [
+					'main'     => 'Preview',
+					'extended' => '',
+				],
+			]
+		);
+		WP_Mock::userFunction(
+			'get_permalink',
+			[
+				'args'   => [ $postId ],
+				'return' => "https://example.com/post/{$postId}",
+			]
+		);
+		WP_Mock::userFunction(
+			'get_post_meta',
+			[
+				'args'   => [ $postId, '_sesamy_locked', true ],
+				'return' => '',
+			]
+		);
+		WP_Mock::userFunction(
+			'get_post_meta',
+			[
+				'args'   => [ $postId, '_sesamy_custom_paywall_url', true ],
+				'return' => '',
+			]
+		);
+		WP_Mock::userFunction(
+			'get_post_meta',
+			[
+				'args'   => [ $postId, '_sesamy_locked_content_redirect_url', true ],
+				'return' => '',
+			]
+		);
+		WP_Mock::userFunction(
+			'has_term',
+			[
+				'args'   => [ 12, 'category', $postId ],
+				'return' => true,
+			]
+		);
+		WP_Mock::userFunction(
+			'apply_filters',
+			[
+				'args'       => [ 'sesamy_is_post_locked', WP_Mock\Functions::type( 'bool' ), $postId ],
+				'return_arg' => 1,
+			]
+		);
+		WP_Mock::userFunction(
+			'apply_filters',
+			[
+				'args'   => [ 'sesamy_paywall_preview', WP_Mock\Functions::type( 'string' ) ],
+				'return' => 'Preview',
+			]
+		);
+		WP_Mock::userFunction(
+			'apply_filters',
+			[
+				'args'   => [ 'sesamy_paywall', WP_Mock\Functions::type( 'string' ) ],
+				'return' => '',
+			]
+		);
+
+		$post = (object) [
+			'ID'           => $postId,
+			'post_content' => 'Term locked content',
+		];
+
+		$result = $this->contentContainer->process_content( $post, 'Term locked content' );
+
+		$this->assertStringContainsString( 'lock-mode="encode"', $result );
+		$this->assertStringContainsString( 'style="display:none;">' . base64_encode( 'Term locked content' ), $result );
 	}
 
 	public function test_process_content_uses_plugin_setting_for_locked_article() {
