@@ -8,6 +8,7 @@
 namespace SesamyPlugin\Admin\View;
 
 use function SesamyPlugin\Helpers\get_post_locking_term;
+use function SesamyPlugin\Helpers\is_post_locked;
 
 /**
  * MetaBox module.
@@ -37,7 +38,10 @@ class MetaBox {
 
 		$is_meta_locked = (bool) get_post_meta( $post->ID, '_sesamy_locked', true );
 		$locking_term   = get_post_locking_term( $post->ID );
-		$is_locked      = $is_meta_locked || null !== $locking_term;
+		// Effective state (meta OR term OR `sesamy_is_post_locked` filter)
+		// drives the dependent fields below, so they stay in sync with what
+		// the front end actually renders.
+		$is_locked = is_post_locked( $post->ID );
 
 		echo '<div class="misc-pub-section">';
 		if ( null !== $locking_term ) {

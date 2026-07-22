@@ -10,6 +10,7 @@ namespace SesamyPlugin\Admin\Settings;
 use function SesamyPlugin\Helpers\get_enabled_post_types;
 use function SesamyPlugin\Helpers\get_post_locking_term;
 use function SesamyPlugin\Helpers\is_config_valid;
+use function SesamyPlugin\Helpers\is_post_locked;
 
 /**
  * Post Settings module.
@@ -156,12 +157,13 @@ class Post {
 		if ( 'sesamy' === $column_name ) {
 			$is_meta_locked  = (bool) get_post_meta( $post_id, '_sesamy_locked', true );
 			$locking_term    = get_post_locking_term( $post_id );
-			$is_locked       = $is_meta_locked || null !== $locking_term;
+			$is_locked       = is_post_locked( $post_id );
 			$single_purchase = get_post_meta( $post_id, '_sesamy_enable_single_purchase', true );
 
 			// `column-sesamy_locked` must reflect the per-post meta only — the
 			// quick-edit checkbox is populated from this class (admin.js), and a
-			// term-driven lock must never round-trip into `_sesamy_locked`.
+			// term- or filter-driven lock must never round-trip into
+			// `_sesamy_locked`.
 			$value = '';
 			if ( $is_meta_locked ) {
 				$value = '<div class="column-sesamy_locked"><span class="dashicons dashicons-lock"></span> Locked</div>';
@@ -172,6 +174,9 @@ class Post {
 					? sprintf( '%s: %s', $taxonomy ? $taxonomy->labels->singular_name : $locking_term['taxonomy'], $term->name )
 					: $locking_term['taxonomy'];
 				$value    = '<div class="column-sesamy_term_locked"><span class="dashicons dashicons-lock"></span> Locked (' . esc_html( $source ) . ')</div>';
+			} elseif ( $is_locked ) {
+				// Locked via the `sesamy_is_post_locked` filter.
+				$value = '<div class="column-sesamy_term_locked"><span class="dashicons dashicons-lock"></span> Locked (filter)</div>';
 			}
 			$value .= $is_locked && $single_purchase ? '<div class="column-sesamy_single_purchase"><span class="dashicons dashicons-money-alt"></span> Single Purchase</div>' : '';
 			echo wp_kses_post( $value );

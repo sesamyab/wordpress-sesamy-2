@@ -152,10 +152,14 @@ class Core {
 								'term_id'  => (int) $matches[2],
 							];
 						} elseif ( is_array( $rule ) && ! empty( $rule['taxonomy'] ) && ! empty( $rule['term_id'] ) ) {
-							$rules[] = [
-								'taxonomy' => sanitize_key( (string) $rule['taxonomy'] ),
-								'term_id'  => absint( $rule['term_id'] ),
-							];
+							$taxonomy = sanitize_key( (string) $rule['taxonomy'] );
+							$term_id  = absint( $rule['term_id'] );
+							if ( '' !== $taxonomy && 0 < $term_id ) {
+								$rules[] = [
+									'taxonomy' => $taxonomy,
+									'term_id'  => $term_id,
+								];
+							}
 						}
 					}
 					$sanitized_input[ $key ] = $rules;

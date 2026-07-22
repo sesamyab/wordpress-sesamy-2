@@ -87,6 +87,14 @@ class CoreTest extends TestCase {
 					'no-term-id',
 					'category:',
 					[ 'taxonomy' => 'category' ],
+					[
+						'taxonomy' => '!!!',
+						'term_id'  => 5,
+					],
+					[
+						'taxonomy' => 'category',
+						'term_id'  => 'abc',
+					],
 					'category:12',
 				],
 			]

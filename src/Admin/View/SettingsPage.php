@@ -652,7 +652,11 @@ class SettingsPage {
 		$taxonomies = [];
 		foreach ( get_enabled_post_types() as $post_type ) {
 			foreach ( get_object_taxonomies( (string) $post_type, 'objects' ) as $taxonomy ) {
-				if ( ! empty( $taxonomy->public ) ) {
+				// Require REST exposure so the Gutenberg panel (which resolves
+				// rules via the taxonomies REST API) sees the same rule set the
+				// backend enforces — a public-but-non-REST taxonomy would lock
+				// posts the editor can't explain.
+				if ( ! empty( $taxonomy->public ) && ! empty( $taxonomy->show_in_rest ) ) {
 					$taxonomies[ $taxonomy->name ] = $taxonomy;
 				}
 			}
