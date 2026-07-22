@@ -144,23 +144,32 @@ class Core {
 					// Accepts both the settings-form encoding (`taxonomy:term_id`
 					// strings from the checkbox list) and the canonical REST shape
 					// (`{taxonomy, term_id}` objects); stores the canonical shape.
+					// Only rules for public, REST-exposed taxonomies are kept —
+					// the same constraint the settings UI applies — so no client
+					// can persist a rule the Gutenberg panel cannot resolve via
+					// the taxonomies REST API.
 					$rules = [];
 					foreach ( (array) $value as $rule ) {
 						if ( is_string( $rule ) && preg_match( '/^([a-z0-9_-]+):(\d+)$/i', $rule, $matches ) ) {
-							$rules[] = [
-								'taxonomy' => sanitize_key( $matches[1] ),
-								'term_id'  => (int) $matches[2],
-							];
+							$taxonomy = sanitize_key( $matches[1] );
+							$term_id  = (int) $matches[2];
 						} elseif ( is_array( $rule ) && ! empty( $rule['taxonomy'] ) && ! empty( $rule['term_id'] ) ) {
 							$taxonomy = sanitize_key( (string) $rule['taxonomy'] );
 							$term_id  = absint( $rule['term_id'] );
-							if ( '' !== $taxonomy && 0 < $term_id ) {
-								$rules[] = [
-									'taxonomy' => $taxonomy,
-									'term_id'  => $term_id,
-								];
-							}
+						} else {
+							continue;
 						}
+						if ( '' === $taxonomy || 0 >= $term_id ) {
+							continue;
+						}
+						$taxonomy_obj = get_taxonomy( $taxonomy );
+						if ( ! $taxonomy_obj || empty( $taxonomy_obj->public ) || empty( $taxonomy_obj->show_in_rest ) ) {
+							continue;
+						}
+						$rules[] = [
+							'taxonomy' => $taxonomy,
+							'term_id'  => $term_id,
+						];
 					}
 					$sanitized_input[ $key ] = $rules;
 					break;

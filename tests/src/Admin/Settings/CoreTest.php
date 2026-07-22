@@ -31,6 +31,27 @@ class CoreTest extends TestCase {
 				},
 			]
 		);
+		// Only `category` and `post_tag` exist as public + REST-exposed.
+		WP_Mock::userFunction(
+			'get_taxonomy',
+			[
+				'return' => function ( $taxonomy ) {
+					if ( in_array( $taxonomy, [ 'category', 'post_tag' ], true ) ) {
+						return (object) [
+							'public'       => true,
+							'show_in_rest' => true,
+						];
+					}
+					if ( 'internal_tax' === $taxonomy ) {
+						return (object) [
+							'public'       => true,
+							'show_in_rest' => false,
+						];
+					}
+					return false;
+				},
+			]
+		);
 	}
 
 	public function test_sanitize_locked_terms_parses_form_encoding() {
@@ -95,6 +116,17 @@ class CoreTest extends TestCase {
 						'taxonomy' => 'category',
 						'term_id'  => 'abc',
 					],
+					// Unregistered and non-REST taxonomies are rejected even in
+					// the canonical shape — the settings contract, not just the UI.
+					[
+						'taxonomy' => 'ghost_tax',
+						'term_id'  => 7,
+					],
+					[
+						'taxonomy' => 'internal_tax',
+						'term_id'  => 8,
+					],
+					'internal_tax:9',
 					'category:12',
 				],
 			]
