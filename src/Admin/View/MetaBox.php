@@ -7,6 +7,9 @@
 
 namespace SesamyPlugin\Admin\View;
 
+use function SesamyPlugin\Helpers\get_post_locking_term;
+use function SesamyPlugin\Helpers\is_post_locked;
+
 /**
  * MetaBox module.
  *
@@ -33,9 +36,39 @@ class MetaBox {
 		// We'll use this nonce field later on when saving.
 		wp_nonce_field( 'sesamy_post_meta_box_nonce', 'post_meta_box_nonce' );
 
-		$is_locked = get_post_meta( $post->ID, '_sesamy_locked', true );
+		$is_meta_locked = (bool) get_post_meta( $post->ID, '_sesamy_locked', true );
+		$locking_term   = get_post_locking_term( $post->ID );
+		// Effective state (meta OR term OR `sesamy_is_post_locked` filter)
+		// drives the dependent fields below, so they stay in sync with what
+		// the front end actually renders.
+		$is_locked = is_post_locked( $post->ID );
+
 		echo '<div class="misc-pub-section">';
-		echo '<label><input value="1" type="checkbox" name="sesamy_meta_box_locked" id="sesamy_meta_box_locked" ' . checked( $is_locked, true, false ) . ' /> ' . esc_html( __( 'Lock this article', 'sesamy' ) ) . '</label>';
+		if ( null !== $locking_term ) {
+			// Term-locked: the checkbox is display-only (checked + disabled) and
+			// the rule never writes `_sesamy_locked`. Disabled inputs don't
+			// submit, so a hidden field preserves the underlying per-post toggle
+			// across saves (`save_meta_box_postdata` keys off isset).
+			if ( $is_meta_locked ) {
+				echo '<input type="hidden" name="sesamy_meta_box_locked" value="1" />';
+			}
+			echo '<label><input value="1" type="checkbox" id="sesamy_meta_box_locked" checked disabled /> ' . esc_html( __( 'Lock this article', 'sesamy' ) ) . '</label>';
+
+			$term          = get_term( $locking_term['term_id'], $locking_term['taxonomy'] );
+			$taxonomy      = get_taxonomy( $locking_term['taxonomy'] );
+			$taxonomy_name = $taxonomy ? strtolower( $taxonomy->labels->singular_name ) : $locking_term['taxonomy'];
+			$term_name     = $term instanceof \WP_Term ? $term->name : (string) $locking_term['term_id'];
+			echo '<p class="description">' . esc_html(
+				sprintf(
+					/* translators: 1: taxonomy singular name (e.g. category), 2: term name. */
+					__( 'Locked automatically by %1$s “%2$s”. Manage under Settings → Sesamy.', 'sesamy' ),
+					$taxonomy_name,
+					$term_name
+				)
+			) . '</p>';
+		} else {
+			echo '<label><input value="1" type="checkbox" name="sesamy_meta_box_locked" id="sesamy_meta_box_locked" ' . checked( $is_meta_locked, true, false ) . ' /> ' . esc_html( __( 'Lock this article', 'sesamy' ) ) . '</label>';
+		}
 		echo '</div>';
 
 		if ( $is_locked ) {

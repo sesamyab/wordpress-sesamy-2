@@ -16,15 +16,28 @@ class UrlHelperTest extends TestCase {
 	}
 
 	/**
-	 * Mock the inputs `sesamy_url()` reads: the `development_mode` setting
-	 * (via the `sesamy_settings` option) and the `sesamy_routing` option.
+	 * Mock the inputs `sesamy_url()` reads: no stored connection bundle, the
+	 * `development_mode` setting (via the `sesamy_settings` option) and the
+	 * `sesamy_routing` option. `use_first_party_proxy` is stored as an
+	 * explicit null so routing falls through to the legacy `sesamy_routing`
+	 * option these tests exercise.
 	 */
 	private function set_state( bool $dev_mode, array $routing ): void {
 		WP_Mock::userFunction(
 			'get_option',
 			[
+				'args'   => [ 'sesamy_connection' ],
+				'return' => false,
+			]
+		);
+		WP_Mock::userFunction(
+			'get_option',
+			[
 				'args'   => [ 'sesamy_settings' ],
-				'return' => [ 'development_mode' => $dev_mode ],
+				'return' => [
+					'development_mode'      => $dev_mode,
+					'use_first_party_proxy' => null,
+				],
 			]
 		);
 		WP_Mock::userFunction(
@@ -116,23 +129,23 @@ class UrlHelperTest extends TestCase {
 	}
 
 	public function test_routing_mode_helper_defaults_to_direct() {
-		WP_Mock::userFunction(
-			'get_option',
-			[
-				'args'   => [ 'sesamy_routing', [] ],
-				'return' => [],
-			]
-		);
+		$this->set_state( false, [] );
 
 		$this->assertSame( 'direct', get_sesamy_routing_mode() );
 	}
 
 	public function test_routing_mode_helper_reads_wordpress_proxy() {
+		$this->set_state( false, [ 'mode' => 'wordpress_proxy' ] );
+
+		$this->assertSame( 'wordpress_proxy', get_sesamy_routing_mode() );
+	}
+
+	public function test_routing_mode_helper_prefers_proxy_toggle() {
 		WP_Mock::userFunction(
 			'get_option',
 			[
-				'args'   => [ 'sesamy_routing', [] ],
-				'return' => [ 'mode' => 'wordpress_proxy' ],
+				'args'   => [ 'sesamy_settings' ],
+				'return' => [ 'use_first_party_proxy' => true ],
 			]
 		);
 

@@ -14,6 +14,7 @@ use function SesamyPlugin\Helpers\get_sesamy_environment;
 use function SesamyPlugin\Helpers\get_sesamy_setting;
 use function SesamyPlugin\Helpers\get_sesamy_vendor_id;
 use function SesamyPlugin\Helpers\is_config_valid;
+use function SesamyPlugin\Helpers\is_post_locked;
 
 /**
  * ContentContainer module.
@@ -74,10 +75,9 @@ class ContentContainer {
 	 * @return string
 	 */
 	public function process_content( $post, $content ) {
-		$is_locked = get_post_meta( $post->ID, '_sesamy_locked', true );
+		$is_locked = is_post_locked( $post->ID );
 		// If not locked, always use 'embed' lock mode
-		// Check if the value indicates locked content (truthy and not '0')
-		if ( empty( $is_locked ) || '0' === $is_locked ) {
+		if ( ! $is_locked ) {
 			$lock_mode = 'embed';
 		} else {
 			$lock_mode = get_sesamy_setting( 'lock_mode' );

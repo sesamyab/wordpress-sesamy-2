@@ -10,6 +10,8 @@ namespace SesamyPlugin\Admin\View;
 use SesamyPlugin\Capsule\Registration;
 use SesamyPlugin\Connect\SesamyApi;
 
+use function SesamyPlugin\Helpers\get_enabled_post_types;
+use function SesamyPlugin\Helpers\get_locked_term_rules;
 use function SesamyPlugin\Helpers\get_sesamy_connection;
 use function SesamyPlugin\Helpers\get_sesamy_setting;
 use function SesamyPlugin\Helpers\is_sesamy_connected;
@@ -626,6 +628,81 @@ class SettingsPage {
 			echo '<label><input type="checkbox" name="sesamy_settings[' . esc_attr( $args['name'] ) . '][]" value="' . esc_attr( $value ) . '" ' . esc_attr( $checked ) . '>' . esc_html( $label ) . '</label><br>';
 		}
 		echo '</fieldset>';
+	}
+
+	/**
+	 * "Automatic locking" term list render. One checkbox group per public
+	 * taxonomy of the enabled content types. Values are encoded as
+	 * `taxonomy:term_id` and decoded to `{taxonomy, term_id}` objects by
+	 * `Core::sanitize_sesamy_settings()`.
+	 *
+	 * @param array{name: string} $args Arguments of the locked terms field.
+	 *
+	 * @return void
+	 */
+	public function settings_render_locked_terms( $args ) {
+		$field_name = $args['name'];
+		$selected   = array_map(
+			static function ( $rule ) {
+				return $rule['taxonomy'] . ':' . $rule['term_id'];
+			},
+			get_locked_term_rules()
+		);
+
+		$taxonomies = [];
+		foreach ( get_enabled_post_types() as $post_type ) {
+			foreach ( get_object_taxonomies( (string) $post_type, 'objects' ) as $taxonomy ) {
+				// Require REST exposure so the Gutenberg panel (which resolves
+				// rules via the taxonomies REST API) sees the same rule set the
+				// backend enforces — a public-but-non-REST taxonomy would lock
+				// posts the editor can't explain.
+				if ( ! empty( $taxonomy->public ) && ! empty( $taxonomy->show_in_rest ) ) {
+					$taxonomies[ $taxonomy->name ] = $taxonomy;
+				}
+			}
+		}
+
+		$rendered_any    = false;
+		$rendered_values = [];
+		echo '<fieldset>';
+		foreach ( $taxonomies as $taxonomy ) {
+			$terms = get_terms(
+				[
+					'taxonomy'   => $taxonomy->name,
+					'hide_empty' => false,
+				]
+			);
+			if ( is_wp_error( $terms ) || empty( $terms ) ) {
+				continue;
+			}
+			$rendered_any = true;
+			// A nested fieldset with a legend gives each taxonomy's checkboxes a
+			// semantic group label instead of a presentational heading.
+			echo '<fieldset><legend>' . esc_html( $taxonomy->labels->name ) . '</legend>';
+			foreach ( $terms as $term ) {
+				$value             = $taxonomy->name . ':' . $term->term_id;
+				$rendered_values[] = $value;
+				$checked           = checked( in_array( $value, $selected, true ), true, false );
+				echo '<label><input type="checkbox" name="sesamy_settings[' . esc_attr( $field_name ) . '][]" value="' . esc_attr( $value ) . '" ' . esc_attr( $checked ) . '>' . esc_html( $term->name ) . '</label><br>';
+			}
+			echo '</fieldset>';
+		}
+
+		// Checkboxes only submit checked values, so a selected rule whose term
+		// wasn't rendered (its taxonomy's get_terms() failed or the term is no
+		// longer returned) would be silently dropped on save. Preserve those
+		// via hidden inputs; the sanitizer keeps them as long as the taxonomy
+		// is still public and REST-exposed.
+		foreach ( array_diff( $selected, $rendered_values ) as $value ) {
+			echo '<input type="hidden" name="sesamy_settings[' . esc_attr( $field_name ) . '][]" value="' . esc_attr( $value ) . '">';
+		}
+		echo '</fieldset>';
+
+		if ( ! $rendered_any ) {
+			echo '<p class="description">' . esc_html__( 'No terms found for the enabled content types.', 'sesamy2' ) . '</p>';
+			return;
+		}
+		echo '<p class="description">' . esc_html__( 'Articles with any of these terms are always locked, in addition to articles locked individually. On sites with full-page caching, flush the cache after changing this.', 'sesamy2' ) . '</p>';
 	}
 
 	/**

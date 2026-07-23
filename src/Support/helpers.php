@@ -85,6 +85,72 @@ function get_enabled_post_types() {
 }
 
 /**
+ * Parsed "Automatic locking" term rules from the `locked_terms` setting.
+ *
+ * Each rule is `['taxonomy' => string, 'term_id' => int]`. The object shape is
+ * deliberate — a future per-term `pass` key (capsule scope mapping) can be
+ * added without a settings migration.
+ *
+ * @return array<int, array{taxonomy: string, term_id: int}>
+ */
+function get_locked_term_rules() {
+	$raw = get_sesamy_setting( 'locked_terms' );
+	if ( ! is_array( $raw ) ) {
+		return [];
+	}
+	$rules = [];
+	foreach ( $raw as $rule ) {
+		if ( is_array( $rule ) && ! empty( $rule['taxonomy'] ) && ! empty( $rule['term_id'] ) ) {
+			$rules[] = [
+				'taxonomy' => (string) $rule['taxonomy'],
+				'term_id'  => (int) $rule['term_id'],
+			];
+		}
+	}
+	return $rules;
+}
+
+/**
+ * First "Automatic locking" rule matching the post's terms, or null.
+ *
+ * Evaluated at read time (`has_term`) rather than synced to post meta, so
+ * rules apply retroactively and removing a term immediately unlocks.
+ *
+ * @param \WP_Post|int $post Post object or id.
+ * @return array{taxonomy: string, term_id: int}|null
+ */
+function get_post_locking_term( $post ) {
+	$post_id = $post instanceof \WP_Post ? (int) $post->ID : (int) $post;
+	foreach ( get_locked_term_rules() as $rule ) {
+		if ( has_term( $rule['term_id'], $rule['taxonomy'], $post_id ) ) {
+			return $rule;
+		}
+	}
+	return null;
+}
+
+/**
+ * Effective lock state for a post — the single source of truth consumed by
+ * rendering, head meta tags, REST, and admin UI.
+ *
+ * Locked when the per-post `_sesamy_locked` meta is set OR the post has a
+ * term selected under "Automatic locking" (additive; the rule never writes
+ * post meta). The result passes through the `sesamy_is_post_locked` filter
+ * as an escape hatch for bespoke lock rules.
+ *
+ * @param \WP_Post|int $post Post object or id.
+ * @return bool
+ */
+function is_post_locked( $post ) {
+	$post_id = $post instanceof \WP_Post ? (int) $post->ID : (int) $post;
+	$locked  = ! empty( get_post_meta( $post_id, '_sesamy_locked', true ) );
+	if ( ! $locked && null !== get_post_locking_term( $post_id ) ) {
+		$locked = true;
+	}
+	return (bool) apply_filters( 'sesamy_is_post_locked', $locked, $post_id );
+}
+
+/**
  * Get the stored Sesamy connection bundle written at the end of the connect flow.
  *
  * Synthesizes a stub bundle from legacy `sesamy_settings.client_id` when no
