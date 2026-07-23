@@ -662,7 +662,8 @@ class SettingsPage {
 			}
 		}
 
-		$rendered_any = false;
+		$rendered_any    = false;
+		$rendered_values = [];
 		echo '<fieldset>';
 		foreach ( $taxonomies as $taxonomy ) {
 			$terms = get_terms(
@@ -675,17 +676,30 @@ class SettingsPage {
 				continue;
 			}
 			$rendered_any = true;
-			echo '<strong>' . esc_html( $taxonomy->labels->name ) . '</strong><br>';
+			// A nested fieldset with a legend gives each taxonomy's checkboxes a
+			// semantic group label instead of a presentational heading.
+			echo '<fieldset><legend>' . esc_html( $taxonomy->labels->name ) . '</legend>';
 			foreach ( $terms as $term ) {
-				$value   = $taxonomy->name . ':' . $term->term_id;
-				$checked = checked( in_array( $value, $selected, true ), true, false );
+				$value             = $taxonomy->name . ':' . $term->term_id;
+				$rendered_values[] = $value;
+				$checked           = checked( in_array( $value, $selected, true ), true, false );
 				echo '<label><input type="checkbox" name="sesamy_settings[' . esc_attr( $field_name ) . '][]" value="' . esc_attr( $value ) . '" ' . esc_attr( $checked ) . '>' . esc_html( $term->name ) . '</label><br>';
 			}
+			echo '</fieldset>';
+		}
+
+		// Checkboxes only submit checked values, so a selected rule whose term
+		// wasn't rendered (its taxonomy's get_terms() failed or the term is no
+		// longer returned) would be silently dropped on save. Preserve those
+		// via hidden inputs; the sanitizer keeps them as long as the taxonomy
+		// is still public and REST-exposed.
+		foreach ( array_diff( $selected, $rendered_values ) as $value ) {
+			echo '<input type="hidden" name="sesamy_settings[' . esc_attr( $field_name ) . '][]" value="' . esc_attr( $value ) . '">';
 		}
 		echo '</fieldset>';
 
 		if ( ! $rendered_any ) {
-			echo '<p class="description">' . esc_html__( 'No categories or tags found for the enabled content types.', 'sesamy2' ) . '</p>';
+			echo '<p class="description">' . esc_html__( 'No terms found for the enabled content types.', 'sesamy2' ) . '</p>';
 			return;
 		}
 		echo '<p class="description">' . esc_html__( 'Articles with any of these terms are always locked, in addition to articles locked individually. On sites with full-page caching, flush the cache after changing this.', 'sesamy2' ) . '</p>';
