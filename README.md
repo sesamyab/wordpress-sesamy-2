@@ -17,6 +17,7 @@ Connect your WordPress site to [Sesamy.com](https://sesamy.com) to sell and mana
   - [General: Content Types](#general-content-types)
   - [General: Default Paywall](#general-default-paywall)
   - [General: Default Pass](#general-default-pass)
+  - [General: Automatic locking](#general-automatic-locking)
   - [Advanced: Lock Mode](#advanced-lock-mode)
   - [Advanced: First-party proxy](#advanced-first-party-proxy)
   - [Advanced: API token](#advanced-api-token)
@@ -37,7 +38,7 @@ Connect your WordPress site to [Sesamy.com](https://sesamy.com) to sell and mana
 Once connected, the plugin:
 
 1. Adds a **Sesamy** menu in WP admin where you connect the site, pick the default paywall and pass, and decide which post types are gateable.
-2. Adds **per-post controls** (Block Editor sidebar, Classic Editor meta box, Quick Edit, and Bulk Edit) to lock individual posts and override defaults.
+2. Adds **per-post controls** (Block Editor sidebar, Classic Editor meta box, Quick Edit, and Bulk Edit) to lock individual posts and override defaults, plus **automatic locking** by category or tag for whole content sections.
 3. Emits Sesamy meta tags in `<head>` — vendor id, default pass, currency, per-post access level, price, and any locked-content redirect — so the Sesamy frontend bundle can identify the publisher and the article.
 4. Wraps the post content in a Sesamy container at render time so the bundle can apply the paywall, swap in unlocked content for entitled readers, or redirect to an alternative URL.
 5. Optionally proxies Sesamy auth and API traffic through your own domain (`/sesamy/api/*`, `/sesamy/auth/*`) for first-party cookies and ad-blocker resilience.
@@ -143,6 +144,28 @@ If the management API call fails, an error message is shown inline and the exist
 
 The Sesamy pass (entitlement bundle) that's announced to the frontend bundle via the `sesamy:pass` meta tag. Used by the Sesamy reader UI to tell users what subscription unlocks the content. Like `default_paywall`, the dropdown is populated live from the management API and previously-saved-but-deleted SKUs are preserved as "(not found)".
 
+### General: Automatic locking
+
+- **Setting key:** `locked_terms`
+- **Type:** Checkbox list of taxonomy terms, grouped per taxonomy
+- **Default:** None
+
+Locks every article carrying any of the selected terms — categories, tags, or terms of any public, REST-exposed custom taxonomy registered on the enabled content types. This is the recommended path when migrating from rule-based membership plugins (MemberPress, Paid Memberships Pro, Restrict Content Pro): recreate the old "protect category X" rule as one term selection and the entire archive is locked retroactively, without editing any posts.
+
+How it combines with the per-post toggle:
+
+- **Additive (OR)** — an article is locked when its per-post toggle is on *or* it has a selected term. A term rule can lock, never unlock.
+- **Non-destructive** — the rule is evaluated at render time and never writes the `_sesamy_locked` post meta. Remove the term (or deselect it here) and each post falls back to whatever its own toggle says.
+- **Consistent everywhere** — the same effective state drives frontend rendering (all lock modes, including Capsule encryption), the `<head>` meta tags, the REST endpoint, and the admin UI.
+
+In the editor, a term-locked post shows its lock toggle checked and disabled with a note naming the term ("Locked automatically by category 'Premium'"); the per-post fields (single purchase, custom paywall URL, redirect) remain editable. The post list column distinguishes the source: `🔒 Locked` for the per-post toggle vs `🔒 Locked (Category: Premium)` for term rules.
+
+Notes:
+
+- Because Bulk Edit only writes the per-post meta, setting "Not Locked" in bulk does not unlock term-locked posts — the column will keep showing the term as the lock source.
+- On sites with full-page caching, flush the cache after changing this setting; it affects every article with the selected terms.
+- Developers can hook the `sesamy_is_post_locked` filter (`bool $locked, int $post_id`) to add bespoke lock rules (by author, legacy plugin meta, etc.); filter-driven locks display as `Locked (filter)` in the post list.
+
 ### Advanced: Lock Mode
 
 - **Setting key:** `lock_mode`
@@ -208,7 +231,7 @@ Fields:
 
 | Field | Meta key | Notes |
 |---|---|---|
-| Lock this article | `_sesamy_locked` | When off, post is fully public and the lock-mode setting is ignored. |
+| Lock this article | `_sesamy_locked` | When off (and no [Automatic locking](#general-automatic-locking) term matches), the post is fully public and the lock-mode setting is ignored. Shown checked + disabled when a term rule locks the post. |
 | Enable single purchase | `_sesamy_enable_single_purchase` | Shows the Price field and emits a `sesamy:price` meta. Only meaningful when Locked. |
 | Price | `_sesamy_price` | Per-post override of `default_price`. Currency comes from the global `default_currency`. |
 | Custom Paywall URL | `_sesamy_custom_paywall_url` | Per-post override of `default_paywall`. Accepts a full URL or a paywall id. |
@@ -225,7 +248,7 @@ The Bulk Edit panel exposes the same two fields as `— No Change — / Locked /
 
 ### Post list column
 
-Enabled post types get an extra **Sesamy** column showing 🔒 Locked and 💰 Single Purchase pills based on the meta values above.
+Enabled post types get an extra **Sesamy** column showing 🔒 Locked and 💰 Single Purchase pills based on the meta values above. Posts locked by an [Automatic locking](#general-automatic-locking) rule show the source instead: `🔒 Locked (Category: Premium)`.
 
 ---
 
