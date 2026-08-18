@@ -261,4 +261,44 @@ class ContentContainerTest extends TestCase {
 		$this->assertStringContainsString( 'lock-mode="encode"', $result );
 		$this->assertStringContainsString( 'style="display:none;">' . base64_encode( 'Locked content' ), $result );
 	}
+
+	/**
+	 * HTML has no self-closing syntax for non-void elements. A trailing `/`
+	 * leaves `<sesamy-paywall>` open, so the parser nests every sibling that
+	 * follows it inside the element. Assert the explicit closing tag.
+	 */
+	public function test_render_paywall_emits_an_explicit_closing_tag() {
+		$post_id = 789;
+
+		WP_Mock::userFunction( 'get_the_ID', [ 'return' => $post_id ] );
+		WP_Mock::userFunction(
+			'get_post_meta',
+			[
+				'args'   => [ $post_id, '_sesamy_custom_paywall_url', true ],
+				'return' => '',
+			]
+		);
+		WP_Mock::userFunction(
+			'get_post_meta',
+			[
+				'args'   => [ $post_id, '_sesamy_locked_content_redirect_url', true ],
+				'return' => '',
+			]
+		);
+		WP_Mock::userFunction(
+			'get_option',
+			[
+				'args'   => [ 'sesamy_settings' ],
+				'return' => [ 'default_paywall' => 'https://example.com/paywall.json' ],
+			]
+		);
+
+		$result = $this->contentContainer->render_paywall();
+
+		$this->assertSame(
+			'<sesamy-paywall settings-url="https://example.com/paywall.json"></sesamy-paywall>',
+			$result
+		);
+		$this->assertStringNotContainsString( '/>', $result );
+	}
 }
