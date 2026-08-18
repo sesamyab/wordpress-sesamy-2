@@ -378,7 +378,7 @@ class SettingsPage {
 				<button type="submit" class="button button-secondary"><?php esc_html_e( 'Register', 'sesamy2' ); ?></button>
 			</p>
 			<p class="description" style="max-width: 60em;">
-				<?php esc_html_e( 'Auto picks JWKS URI for publicly-reachable HTTPS hosts and pinned PEM otherwise (localhost / .local / .test). Manually-added domains default to pinned PEM since the plugin only serves a JWKS document at this site’s own home URL.', 'sesamy2' ); ?>
+				<?php esc_html_e( 'Auto pins the signing key as a PEM, for every host. Sesamy then verifies from its own settings, with no request back to this site. Pick JWKS URI only if a consumer specifically needs to fetch keys from this domain — it puts a live, fail-closed request to this site in the path of every unlock, so a WAF rule, a rate limit, or a few minutes of downtime here locks readers out.', 'sesamy2' ); ?>
 			</p>
 		</form>
 

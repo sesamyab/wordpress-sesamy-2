@@ -226,13 +226,15 @@ The **Publisher registration** panel (only visible after connecting) lets you:
 
 - See every domain currently registered for this vendor, the verification mode, last-updated timestamp, and a live probe result (✓/⚠).
 - **Add a domain** with a verification mode:
-  - **Auto** — picks JWKS URI for publicly-reachable HTTPS hosts and pinned PEM otherwise (localhost / `.local` / `.test`).
-  - **JWKS URI** — Sesamy fetches this site's public keys from `<domain>/.well-known/sesamy-jwks.json`. Use for additional canonical/secondary domains where the WP plugin runs.
-  - **Pinned PEM** — Sesamy stores a copy of the publisher signing key. Use for staging/local hosts and for build-time encryption from a workstation that isn't publicly reachable.
+  - **Auto** (recommended) — pinned PEM, for every host.
+  - **Pinned PEM** — the plugin pushes its public signing key to Sesamy, which then verifies from its own settings. No request ever comes back to this site.
+  - **JWKS URI** — Sesamy fetches this site's public keys from `<domain>/.well-known/dca-publishers.json` on unlock. Only pick this if a consumer specifically needs it: it puts a live, fail-closed request to this site in the path of every unlock, so a WAF rule, a rate limit, or a few minutes of downtime here locks readers out.
 - **Re-register this site** — forces a fresh PUT for the canonical domain. Useful after rotating the publisher signing key.
 - **Remove** any registration.
 
-Manually-added domains default to pinned PEM since the plugin only serves a JWKS document at this site's own home URL. If you operate the same Sesamy account from multiple WP installs (multisite, regional editions), register each one.
+The plugin serves its JWKS document at `/.well-known/dca-publishers.json` either way, so a consumer configured for JWKS keeps working.
+
+Older installs were registered with a JWKS URI. Upgrading re-registers this site's own domain with a pinned PEM once, on the first admin or cron request after the update; hand-added domains are left as they are. If you operate the same Sesamy account from multiple WP installs (multisite, regional editions), register each one.
 
 ---
 
