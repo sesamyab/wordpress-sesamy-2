@@ -234,7 +234,7 @@ The **Publisher registration** panel (only visible after connecting) lets you:
 
 The plugin serves its JWKS document at `/.well-known/dca-publishers.json` either way, so a consumer configured for JWKS keeps working.
 
-Older installs were registered with a JWKS URI. Upgrading re-registers this site's own domain with a pinned PEM once, on the first admin or cron request after the update; hand-added domains are left as they are. If you operate the same Sesamy account from multiple WP installs (multisite, regional editions), register each one.
+Older installs were registered with a JWKS URI. The first admin or cron request after the update re-registers this site's own domain with a pinned PEM. It is recorded as done only when it succeeds — a failed attempt (site offline, Sesamy unreachable) backs off for an hour and is retried on a later request, so the repin is applied once and only once. Hand-added domains are left as they are. If you operate the same Sesamy account from multiple WP installs (multisite, regional editions), register each one.
 
 ---
 

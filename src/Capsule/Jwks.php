@@ -193,7 +193,7 @@ class Jwks {
 			if ( str_starts_with( $candidate, 'W/' ) ) {
 				$candidate = substr( $candidate, 2 );
 			}
-			if ( $candidate === $etag ) {
+			if ( $etag === $candidate ) {
 				return true;
 			}
 		}
