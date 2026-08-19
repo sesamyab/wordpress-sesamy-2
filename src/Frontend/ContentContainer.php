@@ -163,7 +163,12 @@ class ContentContainer {
 			);
 		}
 
-		return '<sesamy-paywall settings-url="' . esc_url( $settings_url ) . '" />';
+		// Must be an explicit open/close pair. HTML has no self-closing syntax
+		// for non-void elements, so `<sesamy-paywall ... />` leaves the element
+		// open and the parser nests everything that follows it — including any
+		// theme markup after the article — as its children, which the component
+		// then replaces when it upgrades and renders its own slot content.
+		return '<sesamy-paywall settings-url="' . esc_url( $settings_url ) . '"></sesamy-paywall>';
 	}
 
 	/**

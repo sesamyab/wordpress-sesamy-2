@@ -307,7 +307,7 @@ When the plugin is connected and a post type is enabled, every singular page of 
    - `sesamy:price` — per-post override or `default_price`, only when single purchase is enabled
    - `sesamy:locked-content-redirect-url` — per-post redirect URL, only when set
 3. Wraps the post content in `<article class="sesamy-article" item-src="..." publisher-content-id="...">` and applies the configured lock mode (Capsule / Embed / Encode).
-4. Appends the paywall (`<sesamy-paywall settings-url="..."/>`) for locked posts that don't have a redirect URL.
+4. Appends the paywall (`<sesamy-paywall settings-url="..."></sesamy-paywall>`) for locked posts that don't have a redirect URL.
 5. Loads the Sesamy frontend bundle, configured with the proxied or direct API/auth bases as appropriate.
 
 The output is **byte-identical for every reader**. Per-user state is resolved client-side after page load, which keeps every page fully cacheable on Cloudflare, WP Super Cache, Kinsta object cache, etc.
