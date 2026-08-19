@@ -17,6 +17,14 @@ class JwksEtagTest extends TestCase {
 
 	protected function setUp(): void {
 		WP_Mock::setUp();
+		$this->setupCommonMocks();
+	}
+
+	/**
+	 * Set up common WordPress function mocks — the request-superglobal
+	 * sanitisers `etag_matches()` runs the header through.
+	 */
+	private function setupCommonMocks(): void {
 		WP_Mock::userFunction( 'wp_unslash', [ 'return' => fn( $value ) => $value ] );
 		WP_Mock::userFunction( 'sanitize_text_field', [ 'return' => fn( $value ) => trim( strip_tags( (string) $value ) ) ] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- test double for sanitize_text_field itself.
 	}

@@ -51,22 +51,19 @@ class RegistrationModeTest extends TestCase {
 	 * in every reader's unlock path.
 	 */
 	public function test_public_https_canonical_domain_picks_pem() {
-		WP_Mock::userFunction( 'wp_get_environment_type', [ 'return' => 'production' ] );
-		WP_Mock::userFunction( 'home_url', [ 'return' => 'https://example.com' ] );
+		$this->setupCommonMocks();
 
 		$this->assertSame( 'pem', $this->pickMode( 'example.com' ) );
 	}
 
 	public function test_local_install_picks_pem() {
-		WP_Mock::userFunction( 'wp_get_environment_type', [ 'return' => 'local' ] );
-		WP_Mock::userFunction( 'home_url', [ 'return' => 'http://example.test' ] );
+		$this->setupCommonMocks( 'local', 'http://example.test' );
 
 		$this->assertSame( 'pem', $this->pickMode( 'example.test' ) );
 	}
 
 	public function test_admin_added_domain_picks_pem() {
-		WP_Mock::userFunction( 'wp_get_environment_type', [ 'return' => 'production' ] );
-		WP_Mock::userFunction( 'home_url', [ 'return' => 'https://example.com' ] );
+		$this->setupCommonMocks();
 
 		$this->assertSame( 'pem', $this->pickMode( 'staging.example.com' ) );
 	}
@@ -117,12 +114,22 @@ class RegistrationModeTest extends TestCase {
 	// -----------------------------------------------------------------
 
 	/**
+	 * Set up common WordPress function mocks.
+	 *
+	 * @param string $environment Value for `wp_get_environment_type()`.
+	 * @param string $home_url    Base URL `home_url()` builds on.
+	 */
+	private function setupCommonMocks( $environment = 'production', $home_url = 'https://example.com' ): void {
+		WP_Mock::userFunction( 'wp_get_environment_type', [ 'return' => $environment ] );
+		WP_Mock::userFunction( 'home_url', [ 'return' => fn( $path = '' ) => $home_url . $path ] );
+	}
+
+	/**
 	 * Stand up a connected, publicly-reachable site with a persisted key
 	 * bundle, and capture whatever `Registration` PUTs to the management API.
 	 */
 	private function mockConnectedSite(): void {
-		WP_Mock::userFunction( 'wp_get_environment_type', [ 'return' => 'production' ] );
-		WP_Mock::userFunction( 'home_url', [ 'return' => fn( $path = '' ) => 'https://example.com' . $path ] );
+		$this->setupCommonMocks();
 		WP_Mock::userFunction( 'wp_json_encode', [ 'return' => fn( $value ) => json_encode( $value ) ] ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode -- test double for wp_json_encode itself.
 
 		WP_Mock::userFunction(

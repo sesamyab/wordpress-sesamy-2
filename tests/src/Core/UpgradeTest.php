@@ -60,6 +60,14 @@ class UpgradeTest extends TestCase {
 		$this->options        = [];
 		$this->transients     = [];
 
+		$this->setupCommonMocks();
+	}
+
+	/**
+	 * Set up common WordPress function mocks — an in-memory stand-in for the
+	 * options and transients the runner reads and writes.
+	 */
+	private function setupCommonMocks(): void {
 		WP_Mock::userFunction(
 			'get_option',
 			[ 'return' => fn( $name, $default_value = false ) => $this->options[ $name ] ?? $default_value ]
