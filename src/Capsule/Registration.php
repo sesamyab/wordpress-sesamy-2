@@ -19,11 +19,19 @@
  * scopes on the access token; both are claimed at DCR time
  * (`AuthHeroClient::register`).
  *
- * Mode selection: registers via JWKS URI when `home_url` is publicly
- * reachable (so the api-proxy can fetch and cache our keys, with native
- * rotation overlap), and via pinned `signingKeyPem` for local installs
- * (`localhost`, `*.test`, `*.local`, `127.0.0.1`) where the JWKS URL is not
- * reachable from the api-proxy network.
+ * Mode selection: always registers a pinned `signingKeyPem`. The plugin owns
+ * the key lifecycle — `Capsule\Service` generates one static ES256 keypair
+ * into a `wp_options` row and never rotates it — so pushing the public key
+ * over the management API makes verification a pure settings lookup on the
+ * api-proxy side. The alternative, pointing at the JWKS document we serve at
+ * `/.well-known/dca-publishers.json`, puts a synchronous, fail-closed fetch of
+ * the publisher's own WordPress origin in the reader's unlock path and buys
+ * nothing while the key is static: one WAF rule, rate limit, or edge-rewritten
+ * `Cache-Control` on the publisher's side turns into 401s on every unlock.
+ *
+ * `jwks_uri` stays a supported mode — the endpoint keeps serving, and
+ * `register_domain( $domain, 'jwks_uri' )` still registers it — but it is
+ * never selected automatically.
  *
  * @package Sesamy2
  */
@@ -159,8 +167,8 @@ class Registration {
 	// ---------------------------------------------------------------------
 
 	/**
-	 * Register the canonical home_url domain with whatever mode best fits the
-	 * environment. Returns the api-proxy response on success.
+	 * Register the canonical home_url domain, pinning the publisher signing
+	 * key PEM. Returns the api-proxy response on success.
 	 *
 	 * @return array<int|string, mixed>|\WP_Error
 	 */
@@ -174,13 +182,33 @@ class Registration {
 	}
 
 	/**
-	 * Register a specific domain. Mode is auto-selected: JWKS URI for the
-	 * canonical domain on a publicly-reachable install, pinned PEM otherwise
-	 * (including any non-canonical domain — we only host JWKS at our own
-	 * home_url, so other domains would need their PEM pinned).
+	 * Re-register the domain we previously auto-registered, forcing pinned-PEM
+	 * mode. Used by the one-time `Core\Upgrade` migration that moves installs
+	 * off `jwksUri`; see that migration for why.
+	 *
+	 * Deliberately scoped to `AUTO_DOMAIN_OPTION` — domains an admin added by
+	 * hand (possibly choosing JWKS URI on purpose) are left alone.
+	 *
+	 * @return array<int|string, mixed>|\WP_Error|null `null` when there is
+	 *         nothing to re-register: no auto-registered domain, or no
+	 *         credentials to register it with (a later connect runs
+	 *         `register_self()`, which pins the PEM anyway).
+	 */
+	public static function repin_auto_domain() {
+		$domain = (string) get_option( self::AUTO_DOMAIN_OPTION, '' );
+		if ( '' === $domain || ! is_sesamy_connected() ) {
+			return null;
+		}
+		return self::register_domain( $domain, 'pem' );
+	}
+
+	/**
+	 * Register a specific domain. Mode defaults to pinned PEM (see
+	 * `pick_mode()`); pass `jwks_uri` explicitly to register the JWKS document
+	 * we serve at `/.well-known/dca-publishers.json` instead.
 	 *
 	 * @param string      $domain Domain to register.
-	 * @param string|null $mode   Force `pem` or `jwks_uri`. When null, auto.
+	 * @param string|null $mode   Force `pem` or `jwks_uri`. When null, `pick_mode()` decides.
 	 * @return array<int|string, mixed>|\WP_Error
 	 */
 	public static function register_domain( $domain, $mode = null ) {
@@ -198,9 +226,12 @@ class Registration {
 		} elseif ( 'pem' === $mode ) {
 			$pem = self::publisher_signing_pem();
 			if ( '' === $pem ) {
+				// `publisher_signing_pem()` generates the keypair on demand, so
+				// this only fires when generation itself failed (no OpenSSL, no
+				// P-256 curve) — not merely because nothing has been rendered yet.
 				return new \WP_Error(
 					'sesamy_no_publisher_key',
-					__( 'No publisher signing key has been generated yet — render a capsule-locked post first.', 'sesamy2' )
+					__( 'Could not read or generate the publisher signing key. Check that PHP has OpenSSL with P-256 (prime256v1) support.', 'sesamy2' )
 				);
 			}
 			$body = [ 'signingKeyPem' => $pem ];
@@ -487,32 +518,25 @@ class Registration {
 	}
 
 	/**
-	 * Decide registration mode for a domain. Public, reachable HTTPS domains
-	 * use the JWKS URI we already serve at `/.well-known/dca-publishers.json`
-	 * (native rotation overlap, no PEM management). Localhost / `.local` /
-	 * `.test` / IP installs can't be reached from the api-proxy, so pin the
-	 * PEM directly.
+	 * Decide registration mode for a domain. Always `pem` — see the class
+	 * docblock: our signing key is static, so a pinned PEM verifies exactly as
+	 * well as a fetched JWKS while removing a fail-closed dependency on the
+	 * publisher's own origin from the reader's unlock path. That holds for
+	 * every environment, so there is nothing left to branch on: local installs
+	 * were already unreachable, plain-http hosts were already rejected by
+	 * api-proxy jwksUri validation, and admin-added domains never had a JWKS
+	 * endpoint of ours to point at.
 	 *
-	 * Non-canonical domains (admin-added) default to PEM too — we only host
-	 * the JWKS at our own home_url, so a different domain wouldn't have a
-	 * matching JWKS endpoint to point at.
+	 * Kept as the single decision point rather than inlined: when signing-key
+	 * rotation lands (it needs the api-proxy to store a key *set* per domain so
+	 * there's an overlap window) this is where the choice gets revisited.
 	 *
 	 * @param string $domain Normalised domain.
-	 * @return string `pem` or `jwks_uri`.
+	 * @return string Always `pem`.
 	 */
 	private static function pick_mode( $domain ) {
-		if ( publisher_domain() !== $domain ) {
-			return 'pem';
-		}
-		if ( is_local_install() ) {
-			return 'pem';
-		}
-		if ( ! str_starts_with( (string) home_url(), 'https://' ) ) {
-			// api-proxy validation rejects non-https jwksUri; pin PEM instead
-			// so the publisher still works on plain-http public dev hosts.
-			return 'pem';
-		}
-		return 'jwks_uri';
+		unset( $domain );
+		return 'pem';
 	}
 
 	/**
