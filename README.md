@@ -330,7 +330,7 @@ The plugin exposes a small set of filters and actions so integrators can change 
 | `sesamy_paywall_preview` | filter | `string $preview_html` | 1.3.0 |
 | `sesamy_paywall` | filter | `string $paywall_html` | 1.3.0 |
 
-**Full reference with examples:** [developers.sesamy.com — WordPress Plugin Hooks](https://developers.sesamy.com/integrations/cms/wordpress-hooks). That page is the source of truth; keep it in sync when adding or changing a hook.
+**Full reference with examples:** [developers.sesamy.com — WordPress Plugin Hooks](https://developers.sesamy.com/integrations/cms/wordpress-hooks.html). That page is the source of truth; keep it in sync when adding or changing a hook.
 
 These are the supported hooks. `ContentContainer` defines other filters to wire its own rendering together; they carry no stability promise and aren't documented for integrators.
 
