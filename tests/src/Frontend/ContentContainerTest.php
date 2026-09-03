@@ -109,12 +109,6 @@ class ContentContainerTest extends TestCase {
 					return $input; },
 			]
 		);
-
-		// Escaping helpers process_content() runs its attributes through. WP_Mock
-		// predefines these as pass-throughs; pin that so the assertions on the
-		// rendered markup don't depend on its defaults.
-		WP_Mock::passthruFunction( 'esc_url' );
-		WP_Mock::passthruFunction( 'esc_attr' );
 	}
 
 	public function test_process_content_returns_embed_for_public_article() {
@@ -219,8 +213,6 @@ class ContentContainerTest extends TestCase {
 				'return' => '',
 			]
 		);
-		WP_Mock::passthruFunction( 'esc_url' );
-		WP_Mock::passthruFunction( 'esc_attr' );
 	}
 
 	public function test_process_content_locks_article_via_term_rule() {
