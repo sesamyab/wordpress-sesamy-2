@@ -25,6 +25,7 @@ Connect your WordPress site to [Sesamy.com](https://sesamy.com) to sell and mana
 - [Per-post controls](#per-post-controls)
 - [Rendering Sesamy Login](#rendering-sesamy-login)
 - [Frontend behavior](#frontend-behavior)
+- [Hooks](#hooks)
 - [Local development](#local-development)
 - [Linting and tests](#linting-and-tests)
 - [Building a release](#building-a-release)
@@ -179,7 +180,7 @@ Notes:
 
 - Because Bulk Edit only writes the per-post meta, setting "Not Locked" in bulk does not unlock term-locked posts — the column will keep showing the term as the lock source.
 - On sites with full-page caching, flush the cache after changing this setting; it affects every article with the selected terms.
-- Developers can hook the `sesamy_is_post_locked` filter (`bool $locked, int $post_id`) to add bespoke lock rules (by author, legacy plugin meta, etc.); filter-driven locks display as `Locked (filter)` in the post list.
+- Developers can hook the `sesamy_is_post_locked` filter (`bool $locked, int $post_id`) to add bespoke lock rules (by author, legacy plugin meta, etc.); filter-driven locks display as `Locked (filter)` in the post list. See [Hooks](#hooks).
 
 ### Advanced: Lock Mode
 
@@ -313,6 +314,27 @@ When the plugin is connected and a post type is enabled, every singular page of 
 5. Loads the Sesamy frontend bundle, configured with the proxied or direct API/auth bases as appropriate.
 
 The output is **byte-identical for every reader**. Per-user state is resolved client-side after page load, which keeps every page fully cacheable on Cloudflare, WP Super Cache, Kinsta object cache, etc.
+
+---
+
+## Hooks
+
+The plugin exposes a small set of filters and actions so integrators can change lock behavior, customize paywall markup, and boot dependent code without forking.
+
+| Hook | Type | Signature | Since |
+| ---- | ---- | --------- | ----- |
+| `sesamy_plugin_loaded` | action | none | 1.3.0 |
+| `sesamy_plugin_init` | action | none | 1.3.0 |
+| `sesamy_plugin_init_priority` | filter | `int $priority` (default `8`) | 1.3.0 |
+| `sesamy_is_post_locked` | filter | `bool $locked, int $post_id` | 1.5.0 |
+| `sesamy_paywall_preview` | filter | `string $preview_html` | 1.3.0 |
+| `sesamy_paywall` | filter | `string $paywall_html` | 1.3.0 |
+
+**Full reference with examples:** [developers.sesamy.com — WordPress Plugin Hooks](https://developers.sesamy.com/integrations/cms/wordpress-hooks.html). That page is the source of truth; keep it in sync when adding or changing a hook.
+
+These are the supported hooks. `ContentContainer` defines other filters to wire its own rendering together; they carry no stability promise and aren't documented for integrators.
+
+One thing worth knowing before you reach for these: rendered output must stay reader-independent. The plugin emits byte-identical HTML for every visitor and resolves entitlements client-side, which is what keeps pages cacheable. Vary hook output on the post, never on the current user.
 
 ---
 
