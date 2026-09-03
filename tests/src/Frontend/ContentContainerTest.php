@@ -11,6 +11,7 @@ class ContentContainerTest extends TestCase {
 	}
 
 	protected function tearDown(): void {
+		unset( $GLOBALS['post'] );
 		WP_Mock::tearDown();
 	}
 
@@ -300,5 +301,120 @@ class ContentContainerTest extends TestCase {
 			$result
 		);
 		$this->assertStringNotContainsString( '/>', $result );
+	}
+
+	/**
+	 * Mocks for the `the_content` gate in `apply_content_filter()`: a singular
+	 * main-query request for an enabled post type, outside `get_the_excerpt`.
+	 */
+	private function setupSingularRenderMocks( $post ) {
+		$GLOBALS['post'] = $post;
+
+		WP_Mock::userFunction(
+			'doing_filter',
+			[
+				'args'   => [ 'get_the_excerpt' ],
+				'return' => false,
+			]
+		);
+		WP_Mock::userFunction( 'is_singular', [ 'return' => true ] );
+		WP_Mock::userFunction( 'is_main_query', [ 'return' => true ] );
+	}
+
+	public function test_apply_content_filter_returns_rendered_article_on_singular_post() {
+		$postId = 123;
+		$this->setupCommonMocks( $postId, false, 'encode' );
+
+		$post = (object) [
+			'ID'           => $postId,
+			'post_content' => 'Test content',
+		];
+		$this->setupSingularRenderMocks( $post );
+
+		$result = $this->contentContainer->apply_content_filter( 'Test content' );
+
+		$this->assertIsString( $result );
+		$this->assertStringContainsString( '<article class="sesamy-article"', $result );
+		$this->assertStringContainsString( '<div slot="content">Test content</div>', $result );
+	}
+
+	/**
+	 * `sesamy_article_html` must receive the rendered container as its first
+	 * argument, and whatever it returns is what `the_content` gets. The
+	 * expectation is keyed on the exact rendered markup, so it only matches
+	 * (and only replaces the output) when arg 1 is that markup.
+	 */
+	public function test_sesamy_article_html_receives_rendered_html_and_its_return_value_is_output() {
+		$postId = 123;
+		$this->setupCommonMocks( $postId, false, 'encode' );
+
+		$post = (object) [
+			'ID'           => $postId,
+			'post_content' => 'Test content',
+		];
+		$this->setupSingularRenderMocks( $post );
+
+		$rendered = $this->contentContainer->process_content( $post, 'Test content' );
+
+		WP_Mock::onFilter( 'sesamy_article_html' )
+			->with( $rendered, $post, 'Test content' )
+			->reply( '<p>filtered</p>' );
+
+		$this->assertSame(
+			'<p>filtered</p>',
+			$this->contentContainer->apply_content_filter( 'Test content' )
+		);
+	}
+
+	public function test_apply_content_filter_passes_through_inside_get_the_excerpt() {
+		WP_Mock::userFunction(
+			'doing_filter',
+			[
+				'args'   => [ 'get_the_excerpt' ],
+				'return' => true,
+			]
+		);
+		WP_Mock::userFunction( 'is_singular', [ 'times' => 0 ] );
+
+		$this->assertSame(
+			'Test content',
+			$this->contentContainer->apply_content_filter( 'Test content' )
+		);
+	}
+
+	public function test_apply_content_filter_passes_through_when_not_singular() {
+		WP_Mock::userFunction(
+			'doing_filter',
+			[
+				'args'   => [ 'get_the_excerpt' ],
+				'return' => false,
+			]
+		);
+		WP_Mock::userFunction( 'get_option', [ 'return' => [] ] );
+		WP_Mock::userFunction( 'is_singular', [ 'return' => false ] );
+		WP_Mock::userFunction( 'is_main_query', [ 'times' => 0 ] );
+
+		$this->assertSame(
+			'Test content',
+			$this->contentContainer->apply_content_filter( 'Test content' )
+		);
+	}
+
+	public function test_apply_content_filter_passes_through_when_not_main_query() {
+		WP_Mock::userFunction(
+			'doing_filter',
+			[
+				'args'   => [ 'get_the_excerpt' ],
+				'return' => false,
+			]
+		);
+		WP_Mock::userFunction( 'get_option', [ 'return' => [] ] );
+		WP_Mock::userFunction( 'is_singular', [ 'return' => true ] );
+		WP_Mock::userFunction( 'is_main_query', [ 'return' => false ] );
+
+		$this->assertSame(
+			'Test content',
+			$this->contentContainer->apply_content_filter( 'Test content' )
+		);
 	}
 }

@@ -41,7 +41,6 @@ class ContentContainer {
 	public function register() {
 		if ( is_config_valid() ) {
 			add_filter( 'the_content', [ $this, 'apply_content_filter' ] );
-			add_filter( 'sesamy_content', [ $this, 'process_content' ], 999, 2 );
 		}
 	}
 
@@ -61,7 +60,25 @@ class ContentContainer {
 		// Check if we're in a singular main query for any of the enabled post types.
 		if ( is_singular( get_enabled_post_types() ) && is_main_query() ) {
 			global $post;
-			return apply_filters( 'sesamy_content', $post, $content );
+
+			$html = $this->process_content( $post, $content );
+
+			/**
+			 * Filters the rendered Sesamy article container before `the_content`
+			 * returns it.
+			 *
+			 * Runs after the plugin has wrapped the post content in
+			 * `<article class="sesamy-article">`, applied the lock mode, and
+			 * appended the paywall. Whatever the callback returns is what
+			 * `the_content` outputs, so return a string.
+			 *
+			 * @since 1.10.0
+			 *
+			 * @param string   $html    The rendered article container markup.
+			 * @param \WP_Post $post    The post being rendered.
+			 * @param string   $content The post content as received from `the_content`.
+			 */
+			return apply_filters( 'sesamy_article_html', $html, $post, $content );
 		}
 
 		return $content;
