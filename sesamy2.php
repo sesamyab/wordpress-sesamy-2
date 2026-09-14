@@ -31,11 +31,11 @@ if ( defined( 'SESAMY_PLUGIN_VERSION' ) ) {
 
 // Useful global constants.
 define( 'SESAMY_PLUGIN_VERSION', '1.11.0' );
-// Pinned version of `@sesamy/sesamy-js`. Kept in sync with
-// `package.json` by `update-plugin-version.js` on precommit. The bootstrap
-// loader is bundled at this version and the same value is emitted in the
-// `<script id="sesamy-js">` config so the script-host chain (auth0-plugin,
-// capsule-plugin, sesamy-components, core) loads in lockstep.
+// Version of `@sesamy/sesamy-js` the inlined bootstrap loader is bundled
+// from. Kept in sync with `package.json` by `update-plugin-version.js` on
+// precommit. The scripts loaded at runtime are requested as `auto` (see
+// `Core\Assets`), so this is the floor a vendor's sesamy-js pin should not
+// go below, not the version that gets served.
 define( 'SESAMY_JS_VERSION', '1.120.2' );
 define( 'SESAMY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SESAMY_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );

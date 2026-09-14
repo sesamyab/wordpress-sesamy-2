@@ -120,10 +120,17 @@ class Assets {
 		// core reads its own keys (clientId, auth, content, …) from the same
 		// element. Unknown keys are ignored on both sides.
 		//
-		// `version` pins the core (and plugins) loaded from the scripts host.
-		// The `stable` channel can lag behind the bootstrap we ship, and
-		// older cores predate the `useHttpCookies` / `api.endpoint` config
-		// keys we emit below — pinning keeps bootstrap and core in lockstep.
+		// `version` and `componentsVersion` are both `auto`: the scripts host
+		// resolves each library from the vendor's client config
+		// (`client_configs.sesamy_js_version` / `sesamy_components_version`)
+		// and falls back to `stable` (sesamy-js 1.130.0 at the time of
+		// writing, above the 1.120.2 the bootstrap is built from). That keeps
+		// the version choice out of the plugin release cycle, so an
+		// incompatible core/components pair can be pinned or rolled back per
+		// vendor. A vendor pin must not go below the sesamy-js version the
+		// bootstrap was built from (`SESAMY_JS_VERSION`), and `wordpress_proxy`
+		// mode needs >= 1.120.0 for the `useHttpCookies` / `api.endpoint` /
+		// `auth.baseUrl` keys emitted below.
 		// `content` selectors override the bundle's hardcoded `<sesamy-article>`
 		// defaults so we can render plain `<article class="sesamy-article">` and
 		// still feed sesamy-js the same article metadata (id, item-src, paywall).
@@ -132,13 +139,12 @@ class Assets {
 		$config           = [
 			'clientId'          => $vendor_id,
 			'environment'       => $env,
-			// `version` pins core + auth0-plugin + capsule-plugin to the
-			// build that matches the inlined bootstrap. `sesamy-components`
-			// releases on its own track, so it gets a separate channel —
-			// otherwise the script host 404s on a non-existent components
-			// build matching the core semver.
-			'version'           => SESAMY_JS_VERSION,
-			'componentsVersion' => 'stable',
+			// `version` also drives auth0-plugin + capsule-plugin, which the
+			// bootstrap requests with the same tag. `componentsVersion` is
+			// set explicitly because `sesamy-components` releases on its own
+			// track; left unset, the bootstrap would reuse `version`'s tag.
+			'version'           => 'auto',
+			'componentsVersion' => 'auto',
 			'content'           => [
 				[
 					'type'      => 'article',
