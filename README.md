@@ -402,15 +402,13 @@ yarn test              # Jest
 
 This produces `sesamy-wordpress.zip` ready for distribution via WP admin → Plugins → Upload Plugin.
 
-The inlined bootstrap loader is built from the `@sesamy/sesamy-js` version in `package.json`. `update-plugin-version.js` copies that version into `sesamy2.php` (`SESAMY_JS_VERSION`) on precommit.
-
 ### sesamy-js and sesamy-components versions
 
 The plugin does not pin the libraries it loads from the scripts host. The `<script id="sesamy-js">` config requests both through the `auto` tag (`version: "auto"`, `componentsVersion: "auto"`), so the bootstrap fetches `https://scripts.sesamy.com/s/<vendor-id>/sesamy-js/auto.js`, and the same for `auth0-plugin`, `capsule-plugin` and `sesamy-components`. For each library, the scripts host uses the vendor's client config when it sets a version and falls back to `stable` when it doesn't. The auth0 and capsule plugins follow the sesamy-js version.
 
 **Pinning a vendor.** Set `sesamy_js_version` and/or `sesamy_components_version` on the vendor's row in `client_configs`. Each value is any tag the scripts host accepts: a concrete version such as `1.130.0`, or a channel such as `stable` or `beta`. The two are resolved independently, so you can pin one library and leave the other on `stable`. Scripts are served with `cache-control: private, max-age=300`, so a change reaches visitors within about five minutes.
 
-Don't pin sesamy-js below the version the plugin's bootstrap is built from (`SESAMY_JS_VERSION`), and never below `1.120.0` for sites in `wordpress_proxy` routing mode, which rely on the `auth.useHttpCookies`, `auth.baseUrl` and `api.endpoint` config keys.
+Don't pin sesamy-js below the `@sesamy/sesamy-js` version in `package.json`, which the plugin's inlined bootstrap is built from, and never below `1.120.0` for sites in `wordpress_proxy` routing mode, which rely on the `auth.useHttpCookies`, `auth.baseUrl` and `api.endpoint` config keys.
 
 **Checking what a vendor got.** Every script response carries an `X-Sesamy-Resolved` header:
 

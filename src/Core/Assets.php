@@ -124,13 +124,13 @@ class Assets {
 		// resolves each library from the vendor's client config
 		// (`client_configs.sesamy_js_version` / `sesamy_components_version`)
 		// and falls back to `stable` (sesamy-js 1.130.0 at the time of
-		// writing, above the 1.120.2 the bootstrap is built from). That keeps
-		// the version choice out of the plugin release cycle, so an
-		// incompatible core/components pair can be pinned or rolled back per
-		// vendor. A vendor pin must not go below the sesamy-js version the
-		// bootstrap was built from (`SESAMY_JS_VERSION`), and `wordpress_proxy`
-		// mode needs >= 1.120.0 for the `useHttpCookies` / `api.endpoint` /
-		// `auth.baseUrl` keys emitted below.
+		// writing). That keeps the version choice out of the plugin release
+		// cycle, so an incompatible core/components pair can be pinned or
+		// rolled back per vendor. A vendor's sesamy-js pin must not go below
+		// the `@sesamy/sesamy-js` version in `package.json` that the inlined
+		// bootstrap is built from, and `wordpress_proxy` mode needs >= 1.120.0
+		// for the `useHttpCookies` / `api.endpoint` / `auth.baseUrl` keys
+		// emitted below.
 		// `content` selectors override the bundle's hardcoded `<sesamy-article>`
 		// defaults so we can render plain `<article class="sesamy-article">` and
 		// still feed sesamy-js the same article metadata (id, item-src, paywall).
