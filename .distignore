@@ -8,6 +8,14 @@
 /phpstan
 /sesamy-wordpress
 /vendor
+/.worktrees
+/.claude
+/tests
+/phpunit.xml.dist
+/sesamy-wp-plugin-plan.md
+/renovate.json
+/yarn.lock
+/sesamy-wordpress.zip
 .distignore
 .editorconfig
 .eslintrc
