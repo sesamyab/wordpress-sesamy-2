@@ -3,7 +3,7 @@
  * Plugin Name:       Sesamy2
  * Plugin URI:        https://sesamy.com
  * Description:       Add Sesamy functionality (sesamy.com) to your WordPress website.
- * Version:           1.13.0
+ * Version:           1.14.0
  * Requires at least: 6.8
  * Requires PHP:      8.3
  * Author:            Sesamy
@@ -30,7 +30,7 @@ if ( defined( 'SESAMY_PLUGIN_VERSION' ) ) {
 }
 
 // Useful global constants.
-define( 'SESAMY_PLUGIN_VERSION', '1.13.0' );
+define( 'SESAMY_PLUGIN_VERSION', '1.14.0' );
 define( 'SESAMY_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SESAMY_PLUGIN_PATH', plugin_dir_path( __FILE__ ) );
 define( 'SESAMY_PLUGIN_INC', SESAMY_PLUGIN_PATH . 'src/' );
