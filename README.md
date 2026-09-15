@@ -331,7 +331,7 @@ The plugin exposes a small set of filters and actions so integrators can change 
 | `sesamy_is_post_locked` | filter | `bool $locked, int $post_id` | 1.5.0 |
 | `sesamy_paywall_preview` | filter | `string $preview_html` | 1.3.0 |
 | `sesamy_paywall` | filter | `string $paywall_html` | 1.3.0 |
-| `sesamy_article_html` | filter | `string $html, WP_Post $post, string $content` | 1.10.0 |
+| `sesamy_article_html` | filter | `string $html, WP_Post $post, string $content` | 1.11.0 |
 
 **Full reference with examples:** [developers.sesamy.com — WordPress Plugin Hooks](https://developers.sesamy.com/integrations/cms/wordpress-hooks.html). That page is the source of truth; keep it in sync when adding or changing a hook.
 

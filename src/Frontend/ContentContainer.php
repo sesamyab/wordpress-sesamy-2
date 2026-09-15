@@ -72,7 +72,7 @@ class ContentContainer {
 			 * appended the paywall. Whatever the callback returns is what
 			 * `the_content` outputs, so return a string.
 			 *
-			 * @since 1.10.0
+			 * @since 1.11.0
 			 *
 			 * @param string   $html    The rendered article container markup.
 			 * @param \WP_Post $post    The post being rendered.
