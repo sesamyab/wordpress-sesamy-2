@@ -120,6 +120,10 @@ class Assets {
 		// core reads its own keys (clientId, auth, content, …) from the same
 		// element. Unknown keys are ignored on both sides.
 		//
+		// `vendorId` names the vendor for the SDK (sesamy-js >= 1.139.0 reads
+		// it). `clientId` carries the same value for older sesamy-js, which
+		// only knows that key.
+		//
 		// `version` and `componentsVersion` are both `auto`: the scripts host
 		// resolves each library from the vendor's client config
 		// (`client_configs.sesamy_js_version` / `sesamy_components_version`)
@@ -138,6 +142,7 @@ class Assets {
 		$env              = get_sesamy_environment();
 		$config           = [
 			'clientId'          => $vendor_id,
+			'vendorId'          => $vendor_id,
 			'environment'       => $env,
 			// `version` also drives auth0-plugin + capsule-plugin, which the
 			// bootstrap requests with the same tag. `componentsVersion` is
