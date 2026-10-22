@@ -208,6 +208,8 @@ When on, all Sesamy auth (`/authorize`, OIDC discovery, JWKS) and API (`/api/*`)
 - **Simpler CSP** — `connect-src 'self'` covers it.
 - **EU data sovereignty** — reader traffic flows through your domain.
 
+The proxy sets the `Vendor-Id` header on every upstream request from the connected vendor id, so anonymous API calls (such as the cookie-mode access check) resolve the vendor without a token. It replaces any `Vendor-Id` the browser sent; the browser's value is forwarded only when the site isn't connected yet.
+
 Server-to-server PHP calls (token exchange, paywall/pass listing, publisher registration) and admin-only browser flows (Connect, DCR handshake) always bypass the proxy — they don't benefit from first-party cookies and only add a hop.
 
 When off, the bundle calls Sesamy directly. Capsule ciphertext is routing-agnostic, so you can flip this setting without re-encrypting any content.

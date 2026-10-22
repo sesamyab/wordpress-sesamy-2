@@ -14,6 +14,7 @@ namespace SesamyPlugin\Proxy;
 
 use function SesamyPlugin\Helpers\get_sesamy_environment;
 use function SesamyPlugin\Helpers\get_sesamy_routing_mode;
+use function SesamyPlugin\Helpers\get_sesamy_vendor_id;
 
 /**
  * Proxy router.
@@ -242,6 +243,18 @@ class Router {
 			if ( ! empty( $_SERVER[ $server_key ] ) ) {
 				$out[ $header ] = sanitize_text_field( wp_unslash( $_SERVER[ $server_key ] ) );
 			}
+		}
+
+		// Anonymous API calls (e.g. `POST /content/has-access` in cookie mode)
+		// carry no token, so upstream resolves the vendor from `Vendor-Id`.
+		// This proxy serves one vendor, so the configured id wins over
+		// whatever the browser sent; the browser value is only a fallback
+		// for sites that aren't connected yet.
+		$vendor_id = get_sesamy_vendor_id();
+		if ( $vendor_id ) {
+			$out['Vendor-Id'] = $vendor_id;
+		} elseif ( ! empty( $_SERVER['HTTP_VENDOR_ID'] ) ) {
+			$out['Vendor-Id'] = sanitize_text_field( wp_unslash( $_SERVER['HTTP_VENDOR_ID'] ) );
 		}
 
 		// Content-Type and Content-Length live outside the HTTP_* prefix.
